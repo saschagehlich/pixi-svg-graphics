@@ -59,14 +59,6 @@ PIXI.SVGGraphics.prototype.drawLineNode = function (node) {
   this._graphics.lineTo(x2, y2);
 };
 
-PIXI.SVGGraphics.prototype.drawTextNode = function (node) {
-  this.drawGNode(node);
-};
-
-PIXI.SVGGraphics.prototype.drawGlyphNode = function (node) {
-  this.drawPathNode(node);
-};
-
 /**
  * Draws the given polyline svg node
  * @param  {SVGPolylineElement} node
@@ -199,17 +191,10 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
         args[0] += offset.x;
         args[1] += offset.y;
 
-        // if (this._graphics.currentPath) {
-        //   this._graphics.currentPath.shape.points.push(
-        //     args[0],
-        //     args[1]
-        //   );
-        // } else {
-          this._graphics.moveTo(
-            args[0],
-            args[1]
-          );
-        // }
+        this._graphics.moveTo(
+          args[0],
+          args[1]
+        );
         if (!firstCoord) {
           firstCoord = { x: args[0], y: args[1] };
         }

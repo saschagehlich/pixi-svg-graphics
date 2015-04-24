@@ -58,14 +58,6 @@ PIXI.SVGGraphics.prototype.drawLineNode = function (node) {
   this._graphics.lineTo(x2, y2);
 };
 
-PIXI.SVGGraphics.prototype.drawTextNode = function (node) {
-  this.drawGNode(node);
-};
-
-PIXI.SVGGraphics.prototype.drawGlyphNode = function (node) {
-  this.drawPathNode(node);
-};
-
 /**
  * Draws the given polyline svg node
  * @param  {SVGPolylineElement} node
