@@ -3,7 +3,7 @@ SVG -> PIXI.Graphics
 
 This is my first approach on implementing "real" svg shapes for PIXI.js.
 
-See a demo [here](http://filshmedia.net/pixi-svg).
+See a demo [here](http://filshmedia.net/lab/pixi-svg).
 
 For usage, please see [example/appliation.js](example/application.js).
 
