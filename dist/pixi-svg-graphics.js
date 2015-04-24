@@ -35,10 +35,11 @@ PIXI.SVGGraphics.prototype.drawSvgNode = function (node) {
  * @param  {SVGGroupElement} node
  */
 PIXI.SVGGraphics.prototype.drawGNode = function (node) {
-  var children = node.children;
+  var children = node.children || node.childNodes;
   var child;
   for (var i = 0, len = children.length; i < len; i++) {
     child = children[i];
+    if (child.nodeType !== 1) { continue; }
     this.drawNode(child);
   }
 };
@@ -349,10 +350,13 @@ PIXI.SVGGraphics.prototype.applySvgAttributes = function (node) {
  */
 PIXI.Graphics.fromSVG = function (svg) {
   var graphics = new PIXI.Graphics();
-
-  var node = svg.children[0];
   var svgGraphics = new PIXI.SVGGraphics(graphics);
-  svgGraphics.drawNode(node);
+
+  var children = svg.children || svg.childNodes;
+  for (var i = 0, len = children.length; i < len; i++) {
+    if (children[i].nodeType !== 1) { continue; }
+    svgGraphics.drawNode(children[i]);
+  }
 
   return graphics;
 };
