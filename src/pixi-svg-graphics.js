@@ -166,12 +166,12 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
   var commands = d.match(/[a-df-z][^a-df-z]*/ig);
   var command, firstCoord, lastCoord, lastControl;
 
-  for (let i = 0, len = commands.length; i < len; i++) {
+  for (var i = 0, len = commands.length; i < len; i++) {
     command = commands[i];
     var commandType = command[0];
     var args = command.slice(1).trim().split(/[\s,]+|(?=\s?[+\-])/);
 
-    for (let j = 0, argslen = args.length; j < argslen; j++) {
+    for (var j = 0, argslen = args.length; j < argslen; j++) {
       args[j] = parseFloat(args[j]);
     }
 
