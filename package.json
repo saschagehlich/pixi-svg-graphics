@@ -1,0 +1,19 @@
+{
+  "name": "pixi-svg-graphics",
+  "version": "0.0.1",
+  "description": "Converts SVG documents to PIXI.Graphics instances",
+  "main": "src/pixi-svg-graphics.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sascha Gehlich <sascha@gehlich.us>",
+  "license": "MIT",
+  "devDependencies": {
+    "browserify": "^9.0.8",
+    "gulp": "^3.8.11",
+    "vinyl-source-stream": "^1.1.0"
+  },
+  "dependencies": {
+    "pixi.js": "^3.0.1"
+  }
+}

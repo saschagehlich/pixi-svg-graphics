@@ -1,0 +1,30 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "jquery": true,
+    "es6": true
+  },
+  "globals": {
+    "_": true,
+    "React": true,
+    "AudioContext": true,
+    "performance": true,
+    "VLIGHT": true,
+    "TweenLite": true,
+    "Bluebird": true,
+    "Constants": true,
+    "mediator": true
+  },
+  "rules": {
+    "quotes": [1, "single"],
+    "no-unused-vars": 1,
+    "no-underscore-dangle": 0
+  },
+  "ecmaFeatures": {
+    "modules": true,
+    "module": true,
+    "blockBindings": true,
+    "jsx": true
+  }
+}
