@@ -166,11 +166,10 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
   var commands = d.match(/[a-df-z][^a-df-z]*/ig)
   var command, firstCoord, lastCoord, lastControl
 
-  var graphics = new PIXI.Graphics()
-
   var pathIndex = 0
   var triangles = []
   var j, argslen
+  var lastPathCoord
 
   for (var i = 0, len = commands.length; i < len; i++) {
     command = commands[i]
@@ -196,22 +195,41 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
         args[0] += offset.x
         args[1] += offset.y
 
-        graphics.moveTo(
-          args[0],
-          args[1]
-        )
+        if (pathIndex === 0) {
+          // First path, just moveTo()
+          this._graphics.moveTo(args[0], args[1])
+        } else if (pathIndex === 1) {
+          // Second path, use lastCoord as lastPathCoord
+          lastPathCoord = {
+            x: lastCoord.x,
+            y: lastCoord.y
+          }
+        }
+
+        if (pathIndex > 1) {
+          // Move from lastCoord to lastPathCoord
+          this._graphics.lineTo(lastPathCoord.x, lastCoord.y)
+          this._graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
+        }
+
+        if (pathIndex >= 1) {
+          // Move from lastPathCoord to new coord
+          this._graphics.lineTo(lastPathCoord.x, args[1])
+          this._graphics.lineTo(args[0], args[1])
+        }
 
         if (!firstCoord) {
           firstCoord = { x: args[0], y: args[1] }
         }
         lastCoord = { x: args[0], y: args[1] }
+        pathIndex++
         break
       // lineto command
       case 'l':
         args[0] += offset.x
         args[1] += offset.y
 
-        graphics.lineTo(
+        this._graphics.lineTo(
           args[0],
           args[1]
         )
@@ -224,7 +242,7 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
           args[k + 1] += offset.y
         }
 
-        graphics.bezierCurveTo(
+        this._graphics.bezierCurveTo(
           args[0],
           args[1],
           args[2],
@@ -239,14 +257,14 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
       case 'v':
         args[0] += offset.y
 
-        graphics.lineTo(lastCoord.x, args[0])
+        this._graphics.lineTo(lastCoord.x, args[0])
         lastCoord.y = args[0]
         break
       // horizontal lineto command
       case 'h':
         args[0] += offset.x
 
-        graphics.lineTo(args[0], lastCoord.y)
+        this._graphics.lineTo(args[0], lastCoord.y)
         lastCoord.x = args[0]
         break
       // quadratic curve command
@@ -259,7 +277,7 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
         var rx = 2 * lastCoord.x - lastControl.x
         var ry = 2 * lastCoord.y - lastControl.y
 
-        graphics.bezierCurveTo(
+        this._graphics.bezierCurveTo(
           rx,
           ry,
           args[0],
@@ -272,17 +290,17 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
         break
       // closepath command
       case 'z':
-        triangles.push(graphics.graphicsData[0].shape.points.slice(0))
-        graphics.clear()
-        pathIndex++
+        // Z command is handled by M
         break
       default:
         throw new Error('Could not handle path command: ' + commandType + ' ' + args.join(','))
     }
   }
 
-  if (pathIndex === 0) {
-    triangles.push(graphics.graphicsData[0].shape.points.slice(0))
+  if (pathIndex > 1) {
+    // Move from lastCoord to lastPathCoord
+    this._graphics.lineTo(lastPathCoord.x, lastCoord.y)
+    this._graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
   }
 }
 
