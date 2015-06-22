@@ -1,9 +1,27 @@
-SVG -> PIXI.Graphics
+PIXI-SVG-Graphics
 ====================
 
-This is my first approach on implementing "real" svg shapes for PIXI.js.
+This module can draw SVG documents on PIXI.js's `Graphics` object, making them scaleable and crisp.
 
-For usage, please see [example/appliation.js](example/application.js).
+Usage:
+------
+
+Using as a module
+
+```js
+var svg = document.querySelector('svg#MySVGTag')
+var SVGGraphics = require('pixi-svg-graphics')
+var graphics = new PIXI.Graphics()
+SVGGraphics.drawSVG(graphics, svg)
+```
+
+Or just include pixi-svg-graphics.min.js in your HTML:
+
+```html
+<script src="pixi-svg-graphics.min.js"></script>
+```
+
+The module is then available using `window.SVGGraphics`
 
 Todos:
 ------
