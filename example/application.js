@@ -6,14 +6,13 @@ window.onload = function () {
     antialias: true
   });
   document.body.appendChild(renderer.view);
+  var graphics = new PIXI.Graphics()
+  graphics.scale.x = 10
+  graphics.scale.y = 10
+  container.addChild(graphics);
 
   $.get('vlight.svg', function (content) {
-    var graphics = PIXI.Graphics.fromSVG(content);
-    container.addChild(graphics);
-
-    graphics.scale.x = 10
-    graphics.scale.y = 10
-
+    SVGGraphics.drawSVG(graphics, content);
     renderer.render(container);
   });
 };

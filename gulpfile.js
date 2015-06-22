@@ -1,14 +1,29 @@
 var path = require('path')
 var gulp = require('gulp')
-var browserify = require('browserify')
+var webpack = require('gulp-webpack')
 var source = require('vinyl-source-stream')
+var uglify = require('gulp-uglify')
 
-gulp.task('default', function () {
-  var b = browserify({
-    entries: './src/pixi-svg-graphics',
-  })
+gulp.task('webpack', function () {
+  var sourceFiles = path.resolve(__dirname, 'src')
+  var input = path.resolve(sourceFiles, 'pixi-svg-graphics.js')
 
-  return b.bundle()
-    .pipe(source('pixi-svg-graphics.js'))
-    .pipe(gulp.dest('dist'))
+  return gulp.src(input)
+    .pipe(webpack({
+      context: sourceFiles,
+      output: {
+        library: 'SVGGraphics',
+        libraryTarget: 'umd',
+        filename: 'pixi-svg-graphics.js',
+        path: path.resolve(__dirname, 'dist')
+      },
+      resolve: {
+        extensions: ['', '.js'],
+        root: sourceFiles
+      },
+      externals: [
+        'pixi.js'
+      ]
+    }))
+    .pipe(gulp.dest(path.resolve(__dirname, 'dist')))
 });

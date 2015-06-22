@@ -1,8 +1,6 @@
-/* global PIXI */
-
 var color2color = require('./vendor/color2color')
 
-PIXI.SVGGraphics = function SVGGraphics (graphics) {
+function SVGGraphics (graphics) {
   this._graphics = graphics
 }
 
@@ -10,7 +8,7 @@ PIXI.SVGGraphics = function SVGGraphics (graphics) {
  * Draws the given node
  * @param  {SVGElement} node
  */
-PIXI.SVGGraphics.prototype.drawNode = function (node) {
+SVGGraphics.prototype.drawNode = function (node) {
   var tagName = node.tagName
   var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1)
   if (!this['draw' + capitalizedTagName + 'Node']) {
@@ -24,7 +22,7 @@ PIXI.SVGGraphics.prototype.drawNode = function (node) {
  * Draws the given root SVG node (and handles it as a group)
  * @param  {SVGSVGElement} node
  */
-PIXI.SVGGraphics.prototype.drawSvgNode = function (node) {
+SVGGraphics.prototype.drawSvgNode = function (node) {
   this.drawGNode(node)
 }
 
@@ -32,7 +30,7 @@ PIXI.SVGGraphics.prototype.drawSvgNode = function (node) {
  * Draws the given group svg node
  * @param  {SVGGroupElement} node
  */
-PIXI.SVGGraphics.prototype.drawGNode = function (node) {
+SVGGraphics.prototype.drawGNode = function (node) {
   var children = node.children || node.childNodes
   var child
   for (var i = 0, len = children.length; i < len; i++) {
@@ -46,7 +44,7 @@ PIXI.SVGGraphics.prototype.drawGNode = function (node) {
  * Draws the given line svg node
  * @param  {SVGLineElement} node
  */
-PIXI.SVGGraphics.prototype.drawLineNode = function (node) {
+SVGGraphics.prototype.drawLineNode = function (node) {
   this.applySvgAttributes(node)
 
   var x1 = parseFloat(node.getAttribute('x1'))
@@ -62,7 +60,7 @@ PIXI.SVGGraphics.prototype.drawLineNode = function (node) {
  * Draws the given polyline svg node
  * @param  {SVGPolylineElement} node
  */
-PIXI.SVGGraphics.prototype.drawPolylineNode = function (node) {
+SVGGraphics.prototype.drawPolylineNode = function (node) {
   this.applySvgAttributes(node)
 
   var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)'
@@ -88,7 +86,7 @@ PIXI.SVGGraphics.prototype.drawPolylineNode = function (node) {
  * Draws the given circle node
  * @param  {SVGCircleElement} node
  */
-PIXI.SVGGraphics.prototype.drawCircleNode = function (node) {
+SVGGraphics.prototype.drawCircleNode = function (node) {
   this.applySvgAttributes(node)
 
   var cx = parseFloat(node.getAttribute('cx'))
@@ -102,7 +100,7 @@ PIXI.SVGGraphics.prototype.drawCircleNode = function (node) {
  * Draws the given ellipse node
  * @param  {SVGCircleElement} node
  */
-PIXI.SVGGraphics.prototype.drawEllipseNode = function (node) {
+SVGGraphics.prototype.drawEllipseNode = function (node) {
   this.applySvgAttributes(node)
 
   var cx = parseFloat(node.getAttribute('cx'))
@@ -117,7 +115,7 @@ PIXI.SVGGraphics.prototype.drawEllipseNode = function (node) {
  * Draws the given rect node
  * @param  {SVGRectElement} node
  */
-PIXI.SVGGraphics.prototype.drawRectNode = function (node) {
+SVGGraphics.prototype.drawRectNode = function (node) {
   this.applySvgAttributes(node)
 
   var x = parseFloat(node.getAttribute('x'))
@@ -132,7 +130,7 @@ PIXI.SVGGraphics.prototype.drawRectNode = function (node) {
  * Draws the given polygon node
  * @param  {SVGPolygonElement} node
  */
-PIXI.SVGGraphics.prototype.drawPolygonNode = function (node) {
+SVGGraphics.prototype.drawPolygonNode = function (node) {
   var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)'
   var points = node.getAttribute('points').match(new RegExp(reg, 'g'))
 
@@ -159,7 +157,7 @@ PIXI.SVGGraphics.prototype.drawPolygonNode = function (node) {
  * Draws the given path svg node
  * @param  {SVGPathElement} node
  */
-PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
+SVGGraphics.prototype.drawPathNode = function (node) {
   this.applySvgAttributes(node)
 
   var d = node.getAttribute('d').trim()
@@ -308,7 +306,7 @@ PIXI.SVGGraphics.prototype.drawPathNode = function (node) {
  * Applies the given node's attributes to our PIXI.Graphics object
  * @param  {SVGElement} node
  */
-PIXI.SVGGraphics.prototype.applySvgAttributes = function (node) {
+SVGGraphics.prototype.applySvgAttributes = function (node) {
   var attributes = {}
 
   // Get node attributes
@@ -368,18 +366,17 @@ PIXI.SVGGraphics.prototype.applySvgAttributes = function (node) {
 
 /**
  * Builds a PIXI.Graphics object from the given SVG document
+ * @param  {PIXI.Graphics} graphics
  * @param  {SVGDocument} svg
- * @return {PIXI.Graphics}
  */
-PIXI.Graphics.fromSVG = function (svg) {
-  var graphics = new PIXI.Graphics()
-  var svgGraphics = new PIXI.SVGGraphics(graphics)
+SVGGraphics.drawSVG = function (graphics, svg) {
+  var svgGraphics = new SVGGraphics(graphics)
 
   var children = svg.children || svg.childNodes
   for (var i = 0, len = children.length; i < len; i++) {
     if (children[i].nodeType !== 1) { continue }
     svgGraphics.drawNode(children[i])
   }
-
-  return graphics
 }
+
+module.exports = SVGGraphics;
