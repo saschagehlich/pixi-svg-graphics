@@ -3,6 +3,7 @@ var gulp = require('gulp')
 var webpack = require('gulp-webpack')
 var source = require('vinyl-source-stream')
 var uglify = require('gulp-uglify')
+var rename = require('gulp-rename')
 
 gulp.task('webpack', function () {
   var sourceFiles = path.resolve(__dirname, 'src')
@@ -26,4 +27,16 @@ gulp.task('webpack', function () {
       ]
     }))
     .pipe(gulp.dest(path.resolve(__dirname, 'dist')))
-});
+})
+
+gulp.task('uglify', function () {
+  var input = path.resolve(__dirname, 'dist/pixi-svg-graphics.js')
+  return gulp.src(input)
+    .pipe(uglify())
+    .pipe(rename({
+       extname: '.min.js'
+     }))
+    .pipe(gulp.dest(path.resolve(__dirname, 'dist')))
+})
+
+gulp.task('default', ['webpack', 'uglify'])
