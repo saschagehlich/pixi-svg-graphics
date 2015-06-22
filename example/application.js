@@ -7,20 +7,13 @@ window.onload = function () {
   });
   document.body.appendChild(renderer.view);
 
-  // Draw loop
-  function draw() {
-    container.scale.x = 10;
-    container.scale.y = 10;
-
-    renderer.render(container);
-    requestAnimationFrame(draw);
-  }
-
   $.get('vlight.svg', function (content) {
     var graphics = PIXI.Graphics.fromSVG(content);
     container.addChild(graphics);
-  });
 
-  // Run draw loop
-  draw();
+    graphics.scale.x = 10
+    graphics.scale.y = 10
+
+    renderer.render(container);
+  });
 };
