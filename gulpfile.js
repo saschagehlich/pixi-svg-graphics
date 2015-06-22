@@ -22,9 +22,14 @@ gulp.task('webpack', function () {
         extensions: ['', '.js'],
         root: sourceFiles
       },
-      externals: [
-        'pixi.js'
-      ]
+      externals: {
+        'pixi.js': {
+          root: 'PIXI',
+          commonjs: 'pixi.js',
+          commonjs2: 'pixi.js',
+          amd: 'pixi.js'
+        }
+      }
     }))
     .pipe(gulp.dest(path.resolve(__dirname, 'dist')))
 })
