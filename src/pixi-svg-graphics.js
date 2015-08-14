@@ -9,13 +9,13 @@ function SVGGraphics (graphics) {
  * Draws the given node
  * @param  {SVGElement} node
  */
-SVGGraphics.prototype.drawNode = function (node) {
+SVGGraphics.prototype.drawNode = function (node, worldTransform) {
   var tagName = node.tagName
   var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1)
   if (!this['draw' + capitalizedTagName + 'Node']) {
     console.warn('No drawing behavior for ' + capitalizedTagName + ' node')
   } else {
-    this['draw' + capitalizedTagName + 'Node'](node)
+    this['draw' + capitalizedTagName + 'Node'](node, worldTransform)
   }
 }
 
@@ -31,14 +31,40 @@ SVGGraphics.prototype.drawSvgNode = function (node) {
  * Draws the given group svg node
  * @param  {SVGGroupElement} node
  */
-SVGGraphics.prototype.drawGNode = function (node) {
+SVGGraphics.prototype.drawGNode = function (node, worldTransform) {
   var children = node.children || node.childNodes
   var child
   for (var i = 0, len = children.length; i < len; i++) {
     child = children[i]
     if (child.nodeType !== 1) { continue }
-    this.drawNode(child)
+    if (worldTransform == null) {
+      worldTransform = child.getAttribute('transform')
+    }
+    this.drawNode(child, worldTransform)
   }
+}
+
+/**
+ * Draws tje text svg node
+ * @param {SVGTextElement} node 
+ */
+SVGGraphics.prototype.drawTextNode = function (node) {
+  var styles = node.getAttribute('style').split(";")
+  var styles_obj = {}
+  for(var i = 0; i < styles.length; i++) {
+    var splitted_style = styles[i].split(':')
+    var key = splitted_style[0]
+    var val = splitted_style[1]
+    styles_obj[key] = val
+  }
+  var font = "16px" + " " + "Arial"
+  var fill = styles_obj['fill']
+  var tspan = node.childNodes[0]
+  var text = tspan.innerHTML
+  var pixi_text = new PIXI.Text(text, {font: font, fill: fill})
+  pixi_text.x = node.getAttribute('x')
+  pixi_text.y = node.getAttribute('y')
+  this._graphics.addChild(pixi_text)
 }
 
 /**
@@ -158,9 +184,8 @@ SVGGraphics.prototype.drawPolygonNode = function (node) {
  * Draws the given path svg node
  * @param  {SVGPathElement} node
  */
-SVGGraphics.prototype.drawPathNode = function (node) {
+SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
   this.applySvgAttributes(node)
-
   var d = node.getAttribute('d').trim()
   var commands = d.match(/[a-df-z][^a-df-z]*/ig)
   var command, lastControl
@@ -170,6 +195,7 @@ SVGGraphics.prototype.drawPathNode = function (node) {
   }
   var triangles = []
   var j, argslen
+  var pathIndex = 0
 
   for (var i = 0, len = commands.length; i < len; i++) {
     command = commands[i]
@@ -197,13 +223,12 @@ SVGGraphics.prototype.drawPathNode = function (node) {
           args[z] += offset.x
           args[z + 1] += offset.y
 
-          if (commandType == 'M' && z == 0 || commandType == 'm' && i == 0) {
+          if (z == 0) {
             this._graphics.moveTo(args[z], args[z + 1])
             this._graphics.graphicsData[this._graphics.graphicsData.length-1].shape.closed = false
           } else {
-            this._graphics.lineTo(args[z], args[z + 1])
+            this._graphics.lineTo(args[z], args[z+1])
           }
-
           lastCoord = { x: args[z], y: args[z + 1] }
           z += 2
           break
@@ -287,6 +312,16 @@ SVGGraphics.prototype.drawPathNode = function (node) {
       }
     }
   }
+
+  //TODO add support for transformations
+  if(worldTransform != null) {
+    var matrix_commands = worldTransform.substr(7).split(',')
+    var matrix = new PIXI.Matrix()
+    matrix.fromArray(matrix_commands)
+    this._graphics.worldTransform = matrix
+    this._graphics.updateTransform()
+  }
+
 }
 
 /**
