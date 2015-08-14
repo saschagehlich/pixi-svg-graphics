@@ -163,12 +163,13 @@ SVGGraphics.prototype.drawPathNode = function (node) {
 
   var d = node.getAttribute('d').trim()
   var commands = d.match(/[a-df-z][^a-df-z]*/ig)
-  var command, firstCoord, lastCoord, lastControl
-
-  var pathIndex = 0
+  var command, lastControl
+  var lastCoord = {
+    x: 0,
+    y: 0
+  }
   var triangles = []
   var j, argslen
-  var lastPathCoord
 
   for (var i = 0, len = commands.length; i < len; i++) {
     command = commands[i]
@@ -179,127 +180,112 @@ SVGGraphics.prototype.drawPathNode = function (node) {
       args[j] = parseFloat(args[j])
     }
 
-    var offset = {
-      x: 0,
-      y: 0
-    }
-    if (commandType === commandType.toLowerCase()) {
-      // Relative positions
-      offset = lastCoord
-    }
+    var z = 0
+    while (z < args.length) {
+      var offset = {
+        x: 0,
+        y: 0
+      }
+      if (commandType === commandType.toLowerCase()) {
+        // Relative positions
+        offset = lastCoord
+      }
 
-    switch (commandType.toLowerCase()) {
-      // moveto command
-      case 'm':
-        args[0] += offset.x
-        args[1] += offset.y
+      switch (commandType.toLowerCase()) {
+        // moveto command
+        case 'm':
+          args[z] += offset.x
+          args[z + 1] += offset.y
 
-        if (pathIndex === 0) {
-          // First path, just moveTo()
-          this._graphics.moveTo(args[0], args[1])
-        } else if (pathIndex === 1) {
-          // Second path, use lastCoord as lastPathCoord
-          lastPathCoord = {
-            x: lastCoord.x,
-            y: lastCoord.y
+          if (commandType == 'M' && z == 0 || commandType == 'm' && i == 0) {
+            this._graphics.moveTo(args[z], args[z + 1])
+            this._graphics.graphicsData[this._graphics.graphicsData.length-1].shape.closed = false
+          } else {
+            this._graphics.lineTo(args[z], args[z + 1])
           }
-        }
 
-        if (pathIndex > 1) {
-          // Move from lastCoord to lastPathCoord
-          this._graphics.lineTo(lastPathCoord.x, lastCoord.y)
-          this._graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
-        }
+          lastCoord = { x: args[z], y: args[z + 1] }
+          z += 2
+          break
+        // lineto command
+        case 'l':
+          args[z] += offset.x
+          args[z + 1] += offset.y
 
-        if (pathIndex >= 1) {
-          // Move from lastPathCoord to new coord
-          this._graphics.lineTo(lastPathCoord.x, args[1])
-          this._graphics.lineTo(args[0], args[1])
-        }
+          this._graphics.lineTo(
+            args[z],
+            args[z + 1]
+          )
+          lastCoord = { x: args[z], y: args[z + 1] }
+          z += 2
+          break
+        // curveto command
+        case 'c':
+          for (var k = 0; k < 6; k += 2) {
+            args[k + z] += offset.x
+            args[k + z + 1] += offset.y
+          }
 
-        if (!firstCoord) {
-          firstCoord = { x: args[0], y: args[1] }
-        }
-        lastCoord = { x: args[0], y: args[1] }
-        pathIndex++
-        break
-      // lineto command
-      case 'l':
-        args[0] += offset.x
-        args[1] += offset.y
+          this._graphics.bezierCurveTo(
+            args[z],
+            args[z + 1],
+            args[z + 2],
+            args[z + 3],
+            args[z + 4],
+            args[z + 5]
+          )
+          lastCoord = { x: args[z + 4], y: args[z + 5] }
+          lastControl = { x: args[z + 2], y: args[z + 3] }
+          z += 6
+          break
+        // vertial lineto command
+        case 'v':
+          args[z] += offset.y
 
-        this._graphics.lineTo(
-          args[0],
-          args[1]
-        )
-        lastCoord = { x: args[0], y: args[1] }
-        break
-      // curveto command
-      case 'c':
-        for (var k = 0, klen = args.length; k < klen; k += 2) {
-          args[k] += offset.x
-          args[k + 1] += offset.y
-        }
+          this._graphics.lineTo(lastCoord.x, args[0])
+          lastCoord.y = args[0]
+          z += 1
+          break
+        // horizontal lineto command
+        case 'h':
+          args[z] += offset.x
 
-        this._graphics.bezierCurveTo(
-          args[0],
-          args[1],
-          args[2],
-          args[3],
-          args[4],
-          args[5]
-        )
-        lastCoord = { x: args[4], y: args[5] }
-        lastControl = { x: args[2], y: args[3] }
-        break
-      // vertial lineto command
-      case 'v':
-        args[0] += offset.y
+          this._graphics.lineTo(args[z], lastCoord.y)
+          lastCoord.x = args[z]
+          z += 1
+          break
+        // quadratic curve command
+        case 's':
+          for (var l = 0; l < 4; l += 2) {
+            args[l + z] += offset.x
+            args[l + z + 1] += offset.y
+          }
 
-        this._graphics.lineTo(lastCoord.x, args[0])
-        lastCoord.y = args[0]
-        break
-      // horizontal lineto command
-      case 'h':
-        args[0] += offset.x
+          var rx = 2 * lastCoord.x - lastControl.x
+          var ry = 2 * lastCoord.y - lastControl.y
 
-        this._graphics.lineTo(args[0], lastCoord.y)
-        lastCoord.x = args[0]
-        break
-      // quadratic curve command
-      case 's':
-        for (var l = 0, llen = args.length; l < llen; l += 2) {
-          args[l] += offset.x
-          args[l + 1] += offset.y
-        }
-
-        var rx = 2 * lastCoord.x - lastControl.x
-        var ry = 2 * lastCoord.y - lastControl.y
-
-        this._graphics.bezierCurveTo(
-          rx,
-          ry,
-          args[0],
-          args[1],
-          args[2],
-          args[3]
-        )
-        lastCoord = { x: args[2], y: args[3] }
-        lastControl = { x: args[0], y: args[1] }
-        break
-      // closepath command
-      case 'z':
-        // Z command is handled by M
-        break
-      default:
-        throw new Error('Could not handle path command: ' + commandType + ' ' + args.join(','))
+          this._graphics.bezierCurveTo(
+            rx,
+            ry,
+            args[z],
+            args[z + 1],
+            args[z + 2],
+            args[z + 3]
+          )
+          lastCoord = { x: args[z + 2], y: args[z + 3] }
+          lastControl = { x: args[z], y: args[z + 1] }
+          z += 4
+          break
+        // closepath command
+        case 'z':
+          z += 1
+          this._graphics.graphicsData[this._graphics.graphicsData.length-1].shape.closed = true
+          // Z command is handled by M
+          break
+        default:
+          throw new Error('Could not handle path command: ' + commandType + ' ' + args.join(','))
+      }
     }
-  }
-
-  if (pathIndex > 1) {
-    // Move from lastCoord to lastPathCoord
-    this._graphics.lineTo(lastPathCoord.x, lastCoord.y)
-    this._graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
   }
 }
 
