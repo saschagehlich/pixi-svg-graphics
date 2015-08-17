@@ -9,14 +9,16 @@ function SVGGraphics (graphics) {
  * Draws the given node
  * @param  {SVGElement} node
  */
-SVGGraphics.prototype.drawNode = function (node, worldTransform) {
+SVGGraphics.prototype.drawNode = function (node) {
+  var graphics = new PIXI.Graphics()
   var tagName = node.tagName
   var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1)
   if (!this['draw' + capitalizedTagName + 'Node']) {
     console.warn('No drawing behavior for ' + capitalizedTagName + ' node')
   } else {
-    this['draw' + capitalizedTagName + 'Node'](node, worldTransform)
+    graphics.addChild(this['draw' + capitalizedTagName + 'Node'](node))
   }
+  return graphics
 }
 
 /**
@@ -24,31 +26,41 @@ SVGGraphics.prototype.drawNode = function (node, worldTransform) {
  * @param  {SVGSVGElement} node
  */
 SVGGraphics.prototype.drawSvgNode = function (node) {
-  this.drawGNode(node)
+  var graphics = new PIXI.Graphics()
+  return graphics.addChild(this.drawGNode(node))
 }
 
 /**
  * Draws the given group svg node
  * @param  {SVGGroupElement} node
  */
-SVGGraphics.prototype.drawGNode = function (node, worldTransform) {
+SVGGraphics.prototype.drawGNode = function (node) {
   var children = node.children || node.childNodes
   var child
+  var graphics = new PIXI.Graphics
   for (var i = 0, len = children.length; i < len; i++) {
     child = children[i]
     if (child.nodeType !== 1) { continue }
-    if (worldTransform == null) {
-      worldTransform = child.getAttribute('transform')
+    worldTransform = child.getAttribute('transform')
+    //TODO add support for transformations
+    if(worldTransform != null) {
+      var matrix_commands = worldTransform.substr(7).split(',')
+      var matrix = new PIXI.Matrix()
+      matrix.fromArray(matrix_commands)
+      this._graphics.worldTransform = matrix
+      this._graphics.updateTransform()
     }
-    this.drawNode(child, worldTransform)
+    graphics.addChild(this.drawNode(child))
   }
+  return graphics
 }
 
 /**
  * Draws tje text svg node
- * @param {SVGTextElement} node 
+ * @param {SVGTextElement} node
  */
 SVGGraphics.prototype.drawTextNode = function (node) {
+  var graphics = new PIXI.Graphics()
   var styles = node.getAttribute('style').split(";")
   var styles_obj = {}
   for(var i = 0; i < styles.length; i++) {
@@ -64,7 +76,7 @@ SVGGraphics.prototype.drawTextNode = function (node) {
   var pixi_text = new PIXI.Text(text, {font: font, fill: fill})
   pixi_text.x = node.getAttribute('x')
   pixi_text.y = node.getAttribute('y')
-  this._graphics.addChild(pixi_text)
+  return graphics.addChild(pixi_text)
 }
 
 /**
@@ -72,15 +84,18 @@ SVGGraphics.prototype.drawTextNode = function (node) {
  * @param  {SVGLineElement} node
  */
 SVGGraphics.prototype.drawLineNode = function (node) {
-  this.applySvgAttributes(node)
+  var graphics = new PIXI.Graphics()
+  this.applySvgAttributes(node, graphics)
 
   var x1 = parseFloat(node.getAttribute('x1'))
   var y1 = parseFloat(node.getAttribute('y1'))
   var x2 = parseFloat(node.getAttribute('x2'))
   var y2 = parseFloat(node.getAttribute('y2'))
 
-  this._graphics.moveTo(x1, y1)
-  this._graphics.lineTo(x2, y2)
+  graphics.moveTo(x1, y1)
+  graphics.lineTo(x2, y2)
+
+  return graphics
 }
 
 /**
@@ -88,7 +103,8 @@ SVGGraphics.prototype.drawLineNode = function (node) {
  * @param  {SVGPolylineElement} node
  */
 SVGGraphics.prototype.drawPolylineNode = function (node) {
-  this.applySvgAttributes(node)
+  var graphics = new PIXI.Graphics()
+  this.applySvgAttributes(node, graphics)
 
   var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)'
   var points = node.getAttribute('points').match(new RegExp(reg, 'g'))
@@ -102,11 +118,12 @@ SVGGraphics.prototype.drawPolylineNode = function (node) {
     coords[2] = parseFloat(coords[2])
 
     if (i === 0) {
-      this._graphics.moveTo(coords[1], coords[2])
+      graphics.moveTo(coords[1], coords[2])
     } else {
-      this._graphics.lineTo(coords[1], coords[2])
+      graphics.lineTo(coords[1], coords[2])
     }
   }
+  return graphics
 }
 
 /**
@@ -114,13 +131,15 @@ SVGGraphics.prototype.drawPolylineNode = function (node) {
  * @param  {SVGCircleElement} node
  */
 SVGGraphics.prototype.drawCircleNode = function (node) {
-  this.applySvgAttributes(node)
+  var graphics = new PIXI.Graphics()
+  this.applySvgAttributes(node, graphics)
 
   var cx = parseFloat(node.getAttribute('cx'))
   var cy = parseFloat(node.getAttribute('cy'))
   var r = parseFloat(node.getAttribute('r'))
 
-  this._graphics.drawCircle(cx, cy, r)
+  graphics.drawCircle(cx, cy, r)
+  return graphics
 }
 
 /**
@@ -128,14 +147,16 @@ SVGGraphics.prototype.drawCircleNode = function (node) {
  * @param  {SVGCircleElement} node
  */
 SVGGraphics.prototype.drawEllipseNode = function (node) {
-  this.applySvgAttributes(node)
+  var graphics = new PIXI.Graphics()
+  this.applySvgAttributes(node, graphics)
 
   var cx = parseFloat(node.getAttribute('cx'))
   var cy = parseFloat(node.getAttribute('cy'))
   var rx = parseFloat(node.getAttribute('rx'))
   var ry = parseFloat(node.getAttribute('ry'))
 
-  this._graphics.drawEllipse(cx, cy, rx, ry)
+  graphics.drawEllipse(cx, cy, rx, ry)
+  return graphics
 }
 
 /**
@@ -143,14 +164,16 @@ SVGGraphics.prototype.drawEllipseNode = function (node) {
  * @param  {SVGRectElement} node
  */
 SVGGraphics.prototype.drawRectNode = function (node) {
-  this.applySvgAttributes(node)
+  var graphics = new PIXI.Graphics()
+  this.applySvgAttributes(node, graphics)
 
   var x = parseFloat(node.getAttribute('x'))
   var y = parseFloat(node.getAttribute('y'))
   var width = parseFloat(node.getAttribute('width'))
   var height = parseFloat(node.getAttribute('height'))
 
-  this._graphics.drawRect(x, y, width, height)
+  graphics.drawRect(x, y, width, height)
+  return graphics
 }
 
 /**
@@ -158,6 +181,7 @@ SVGGraphics.prototype.drawRectNode = function (node) {
  * @param  {SVGPolygonElement} node
  */
 SVGGraphics.prototype.drawPolygonNode = function (node) {
+  var graphics = new PIXI.Graphics()
   var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)'
   var points = node.getAttribute('points').match(new RegExp(reg, 'g'))
 
@@ -176,16 +200,18 @@ SVGGraphics.prototype.drawPolygonNode = function (node) {
     ))
   }
 
-  this.applySvgAttributes(node)
-  this._graphics.drawPolygon(path)
+  this.applySvgAttributes(node, graphics)
+  graphics.drawPolygon(path)
+  return graphics
 }
 
 /**
  * Draws the given path svg node
  * @param  {SVGPathElement} node
  */
-SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
-  this.applySvgAttributes(node)
+SVGGraphics.prototype.drawPathNode = function (node) {
+  var graphics = new PIXI.Graphics()
+  this.applySvgAttributes(node, graphics)
   var d = node.getAttribute('d').trim()
   var commands = d.match(/[a-df-z][^a-df-z]*/ig)
   var command, lastControl
@@ -224,10 +250,10 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
           args[z + 1] += offset.y
 
           if (z == 0) {
-            this._graphics.moveTo(args[z], args[z + 1])
-            this._graphics.graphicsData[this._graphics.graphicsData.length-1].shape.closed = false
+            graphics.moveTo(args[z], args[z + 1])
+            graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = false
           } else {
-            this._graphics.lineTo(args[z], args[z+1])
+            graphics.lineTo(args[z], args[z+1])
           }
           lastCoord = { x: args[z], y: args[z + 1] }
           z += 2
@@ -237,7 +263,7 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
           args[z] += offset.x
           args[z + 1] += offset.y
 
-          this._graphics.lineTo(
+          graphics.lineTo(
             args[z],
             args[z + 1]
           )
@@ -251,7 +277,7 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
             args[k + z + 1] += offset.y
           }
 
-          this._graphics.bezierCurveTo(
+          graphics.bezierCurveTo(
             args[z],
             args[z + 1],
             args[z + 2],
@@ -267,7 +293,7 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
         case 'v':
           args[z] += offset.y
 
-          this._graphics.lineTo(lastCoord.x, args[0])
+          graphics.lineTo(lastCoord.x, args[0])
           lastCoord.y = args[0]
           z += 1
           break
@@ -275,7 +301,7 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
         case 'h':
           args[z] += offset.x
 
-          this._graphics.lineTo(args[z], lastCoord.y)
+          graphics.lineTo(args[z], lastCoord.y)
           lastCoord.x = args[z]
           z += 1
           break
@@ -289,7 +315,7 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
           var rx = 2 * lastCoord.x - lastControl.x
           var ry = 2 * lastCoord.y - lastControl.y
 
-          this._graphics.bezierCurveTo(
+          graphics.bezierCurveTo(
             rx,
             ry,
             args[z],
@@ -304,7 +330,7 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
         // closepath command
         case 'z':
           z += 1
-          this._graphics.graphicsData[this._graphics.graphicsData.length-1].shape.closed = true
+          graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = true
           // Z command is handled by M
           break
         default:
@@ -312,23 +338,14 @@ SVGGraphics.prototype.drawPathNode = function (node, worldTransform) {
       }
     }
   }
-
-  //TODO add support for transformations
-  if(worldTransform != null) {
-    var matrix_commands = worldTransform.substr(7).split(',')
-    var matrix = new PIXI.Matrix()
-    matrix.fromArray(matrix_commands)
-    this._graphics.worldTransform = matrix
-    this._graphics.updateTransform()
-  }
-
+  return graphics
 }
 
 /**
  * Applies the given node's attributes to our PIXI.Graphics object
  * @param  {SVGElement} node
  */
-SVGGraphics.prototype.applySvgAttributes = function (node) {
+SVGGraphics.prototype.applySvgAttributes = function (node, graphics) {
   var attributes = {}
 
   // Get node attributes
@@ -372,7 +389,7 @@ SVGGraphics.prototype.applySvgAttributes = function (node) {
   if (attributes['stroke-width']) {
     strokeWidth = parseInt(attributes['stroke-width'], 10)
   }
-  this._graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha)
+  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha)
 
   // Apply fill style
   var fillColor = 0x000000, fillAlpha = 0
@@ -382,7 +399,7 @@ SVGGraphics.prototype.applySvgAttributes = function (node) {
     fillColor = intColor
     fillAlpha = color[3]
 
-    this._graphics.beginFill(fillColor, fillAlpha)
+    graphics.beginFill(fillColor, fillAlpha)
   }
 }
 
@@ -397,7 +414,7 @@ SVGGraphics.drawSVG = function (graphics, svg) {
   var children = svg.children || svg.childNodes
   for (var i = 0, len = children.length; i < len; i++) {
     if (children[i].nodeType !== 1) { continue }
-    svgGraphics.drawNode(children[i])
+    svgGraphics._graphics.addChild(svgGraphics.drawNode(children[i]))
   }
 }
 
