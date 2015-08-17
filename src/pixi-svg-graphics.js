@@ -9,14 +9,14 @@ function SVGGraphics (graphics) {
  * Draws the given node
  * @param  {SVGElement} node
  */
-SVGGraphics.prototype.drawNode = function (node, transformMatrix) {
+SVGGraphics.prototype.drawNode = function (node) {
   var graphics = new PIXI.Graphics()
   var tagName = node.tagName
   var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1)
   if (!this['draw' + capitalizedTagName + 'Node']) {
     console.warn('No drawing behavior for ' + capitalizedTagName + ' node')
   } else {
-    graphics.addChild(this['draw' + capitalizedTagName + 'Node'](node, transformMatrix))
+    graphics.addChild(this['draw' + capitalizedTagName + 'Node'](node))
   }
   return graphics
 }
@@ -41,29 +41,7 @@ SVGGraphics.prototype.drawGNode = function (node) {
   for (var i = 0, len = children.length; i < len; i++) {
     child = children[i]
     if (child.nodeType !== 1) { continue }
-    if (child.getAttribute('transform')) {
-      var transformMatrix = new PIXI.Matrix()
-      var transformAttr = child.getAttribute('transform').trim().split('(')
-      var transformCommand = transformAttr[0]
-      var transformValues = transformAttr[1].replace(')','').split(',')
-      if(transformCommand == 'matrix') {
-        //transformMatrix.a   = parseFloat(transformValues[0])
-        //transformMatrix.b   = parseFloat(transformValues[1])
-        //transformMatrix.c   = parseFloat(transformValues[2])
-        //transformMatrix.d   = parseFloat(transformValues[3])
-        //transformMatrix.tx  = parseFloat(transformValues[4])
-        //transformMatrix.ty  = parseFloat(transformValues[5])
-      } else if(transformCommand == 'translate') {
-        graphics.x += parseFloat(transformValues[0])
-        graphics.y += parseFloat(transformValues[1])
-        //transformMatrix.translate(parseFloat(transformValues[0]), parseFloat(transformValues[1]))
-      } else if(transformCommand == 'scale') {
-        graphics.scale.x = parseFloat(transformValues[0])
-        graphics.scale.y = parseFloat(transformValues[1])
-        //transformMatrix.scale(parseFloat(transformValues[0]), parseFloat(transformValues[1]))
-      } else if(transformCommand == 'rotate') {
-      }
-    }
+    this.applyTransformation(child,graphics)
     graphics.addChild(this.drawNode(child))
   }
   return graphics
@@ -186,6 +164,7 @@ SVGGraphics.prototype.drawRectNode = function (node) {
   var width = parseFloat(node.getAttribute('width'))
   var height = parseFloat(node.getAttribute('height'))
 
+  this.applyTransformation(node, graphics)
   graphics.drawRect(x, y, width, height)
   return graphics
 }
@@ -223,7 +202,7 @@ SVGGraphics.prototype.drawPolygonNode = function (node) {
  * Draws the given path svg node
  * @param  {SVGPathElement} node
  */
-SVGGraphics.prototype.drawPathNode = function (node, transformMatrix) {
+SVGGraphics.prototype.drawPathNode = function (node) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
   var d = node.getAttribute('d').trim()
@@ -353,6 +332,50 @@ SVGGraphics.prototype.drawPathNode = function (node, transformMatrix) {
     }
   }
   return graphics
+}
+
+SVGGraphics.prototype.applyTransformation = function (node, graphics) {
+    if (node.getAttribute('transform')) {
+      var transformMatrix = new PIXI.Matrix()
+      var transformAttr = node.getAttribute('transform').trim().split('(')
+      var transformCommand = transformAttr[0]
+      var transformValues = transformAttr[1].replace(')','').split(',')
+      if(transformCommand == 'matrix') {
+        transformMatrix.a   = parseFloat(transformValues[0])
+        transformMatrix.b   = parseFloat(transformValues[1])
+        transformMatrix.c   = parseFloat(transformValues[2])
+        transformMatrix.d   = parseFloat(transformValues[3])
+        transformMatrix.tx  = parseFloat(transformValues[4])
+        transformMatrix.ty  = parseFloat(transformValues[5])
+        var point = {x: 0, y: 0}
+        var trans_point = transformMatrix.apply(point)
+        graphics.x += trans_point.x
+        graphics.y += trans_point.y
+
+        point = {x: 1, y: 1}
+        var scale_point = transformMatrix.apply(point)
+        graphics.scale.x = scale_point.x - trans_point.x
+        graphics.scale.y = scale_point.y - trans_point.y
+      } else if(transformCommand == 'translate') {
+        graphics.x += parseFloat(transformValues[0])
+        graphics.y += parseFloat(transformValues[1])
+      } else if(transformCommand == 'scale') {
+        graphics.scale.x = parseFloat(transformValues[0])
+        graphics.scale.y = parseFloat(transformValues[1])
+      } else if(transformCommand == 'rotate') {
+        if(transformValues.length > 1) {
+          graphics.x += parseFloat(transformValues[1])
+          graphics.y += parseFloat(transformValues[2])
+        }
+
+        graphics.rotation = parseFloat(transformValues[0])
+
+        if(transformValues.length > 1) {
+          graphics.x -= parseFloat(transformValues[1])
+          graphics.y -= parseFloat(transformValues[2])
+        }
+      }
+    }
 }
 
 /**
