@@ -9,14 +9,14 @@ function SVGGraphics (graphics) {
  * Draws the given node
  * @param  {SVGElement} node
  */
-SVGGraphics.prototype.drawNode = function (node) {
+SVGGraphics.prototype.drawNode = function (node, transformMatrix) {
   var graphics = new PIXI.Graphics()
   var tagName = node.tagName
   var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1)
   if (!this['draw' + capitalizedTagName + 'Node']) {
     console.warn('No drawing behavior for ' + capitalizedTagName + ' node')
   } else {
-    graphics.addChild(this['draw' + capitalizedTagName + 'Node'](node))
+    graphics.addChild(this['draw' + capitalizedTagName + 'Node'](node, transformMatrix))
   }
   return graphics
 }
@@ -37,18 +37,32 @@ SVGGraphics.prototype.drawSvgNode = function (node) {
 SVGGraphics.prototype.drawGNode = function (node) {
   var children = node.children || node.childNodes
   var child
-  var graphics = new PIXI.Graphics
+  var graphics = new PIXI.Graphics()
   for (var i = 0, len = children.length; i < len; i++) {
     child = children[i]
     if (child.nodeType !== 1) { continue }
-    worldTransform = child.getAttribute('transform')
-    //TODO add support for transformations
-    if(worldTransform != null) {
-      var matrix_commands = worldTransform.substr(7).split(',')
-      var matrix = new PIXI.Matrix()
-      matrix.fromArray(matrix_commands)
-      this._graphics.worldTransform = matrix
-      this._graphics.updateTransform()
+    if (child.getAttribute('transform')) {
+      var transformMatrix = new PIXI.Matrix()
+      var transformAttr = child.getAttribute('transform').trim().split('(')
+      var transformCommand = transformAttr[0]
+      var transformValues = transformAttr[1].replace(')','').split(',')
+      if(transformCommand == 'matrix') {
+        //transformMatrix.a   = parseFloat(transformValues[0])
+        //transformMatrix.b   = parseFloat(transformValues[1])
+        //transformMatrix.c   = parseFloat(transformValues[2])
+        //transformMatrix.d   = parseFloat(transformValues[3])
+        //transformMatrix.tx  = parseFloat(transformValues[4])
+        //transformMatrix.ty  = parseFloat(transformValues[5])
+      } else if(transformCommand == 'translate') {
+        graphics.x += parseFloat(transformValues[0])
+        graphics.y += parseFloat(transformValues[1])
+        //transformMatrix.translate(parseFloat(transformValues[0]), parseFloat(transformValues[1]))
+      } else if(transformCommand == 'scale') {
+        graphics.scale.x = parseFloat(transformValues[0])
+        graphics.scale.y = parseFloat(transformValues[1])
+        //transformMatrix.scale(parseFloat(transformValues[0]), parseFloat(transformValues[1]))
+      } else if(transformCommand == 'rotate') {
+      }
     }
     graphics.addChild(this.drawNode(child))
   }
@@ -209,7 +223,7 @@ SVGGraphics.prototype.drawPolygonNode = function (node) {
  * Draws the given path svg node
  * @param  {SVGPathElement} node
  */
-SVGGraphics.prototype.drawPathNode = function (node) {
+SVGGraphics.prototype.drawPathNode = function (node, transformMatrix) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
   var d = node.getAttribute('d').trim()
