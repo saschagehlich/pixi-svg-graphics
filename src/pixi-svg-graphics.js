@@ -57,7 +57,7 @@ SVGGraphics.prototype.drawTextNode = function (node) {
     var val = splitted_style[1]
     styles_obj[key] = val
   }
-  var font = "16px" + " " + "Arial"
+  var font = styles_obj['font-size'] + " " + styles_obj['font-family']
   var fill = styles_obj['fill']
   var tspan = node.childNodes[0]
   var text = tspan.innerHTML
