@@ -215,8 +215,9 @@ SVGGraphics.prototype.drawPathNode = function (node) {
   for (var i = 0; i < tokens.length; i++) {
     var command = tokens[i].command
     var args = tokens[i].args
+    var points = tokens[i].points
     var z = 0
-    while (z < args.length) {
+    while (z < points.length) {
       var offset = {
         x: 0,
         y: 0
@@ -229,70 +230,67 @@ SVGGraphics.prototype.drawPathNode = function (node) {
       switch (command.toLowerCase()) {
         // moveto command
         case 'm':
-          args[z] += offset.x
-          args[z + 1] += offset.y
+          var x = points[z].x += offset.x
+          var y = points[z].y += offset.y
 
           if (z == 0) {
-            graphics.moveTo(args[z], args[z + 1])
+            graphics.moveTo(x, y)
             graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = false
           } else {
-            graphics.lineTo(args[z], args[z+1])
+            graphics.lineTo(x, y)
           }
-          lastCoord = { x: args[z], y: args[z + 1] }
-          z += 2
+          lastCoord = points[z]
+          z += 1
           break
         // lineto command
         case 'l':
-          args[z] += offset.x
-          args[z + 1] += offset.y
+          var x = points[z].x += offset.x
+          var y = points[z].y += offset.y
 
-          graphics.lineTo(
-            args[z],
-            args[z + 1]
-          )
-          lastCoord = { x: args[z], y: args[z + 1] }
-          z += 2
+          graphics.lineTo(x, y)
+          lastCoord = points[z]
+          z += 1
           break
         // curveto command
         case 'c':
-          for (var k = 0; k < 6; k += 2) {
-            args[k + z] += offset.x
-            args[k + z + 1] += offset.y
+          for (var k = 0; k < 3; k++) {
+            points[z + k].x += offset.x
+            points[z + k].y += offset.y
           }
 
           graphics.bezierCurveTo(
-            args[z],
-            args[z + 1],
-            args[z + 2],
-            args[z + 3],
-            args[z + 4],
-            args[z + 5]
+            points[z].x,
+            points[z].y,
+            points[z + 1].x,
+            points[z + 1].y,
+            points[z + 2].x,
+            points[z + 2].y
           )
-          lastCoord = { x: args[z + 4], y: args[z + 5] }
-          lastControl = { x: args[z + 2], y: args[z + 3] }
-          z += 6
+          lastCoord = points[z + 2]
+          lastControl = points[z + 1]
+          z += 3
           break
         // vertial lineto command
         case 'v':
-          args[z] += offset.y
+          var y = points[z].y + offset.y
 
-          graphics.lineTo(lastCoord.x, args[0])
-          lastCoord.y = args[0]
+          graphics.lineTo(lastCoord.x, y)
+          lastCoord.y = y
           z += 1
           break
         // horizontal lineto command
         case 'h':
-          args[z] += offset.x
+          var x = points[z].x + offset.x
 
-          graphics.lineTo(args[z], lastCoord.y)
-          lastCoord.x = args[z]
+          graphics.lineTo(x, lastCoord.y)
+          lastCoord.x = x
           z += 1
           break
         // quadratic curve command
         case 's':
-          for (var l = 0; l < 4; l += 2) {
-            args[l + z] += offset.x
-            args[l + z + 1] += offset.y
+          for (var l = 0; l < 2; l++) {
+            points[l + z].x += offset.x
+            points[l + z].y += offset.y
           }
 
           var rx = 2 * lastCoord.x - lastControl.x
@@ -301,14 +299,14 @@ SVGGraphics.prototype.drawPathNode = function (node) {
           graphics.bezierCurveTo(
             rx,
             ry,
-            args[z],
-            args[z + 1],
-            args[z + 2],
-            args[z + 3]
+            points[z],
+            points[z],
+            points[z + 1],
+            points[z + 1]
           )
-          lastCoord = { x: args[z + 2], y: args[z + 3] }
-          lastControl = { x: args[z], y: args[z + 1] }
-          z += 4
+          lastCoord = points[z + 1]
+          lastControl = points[z]
+          z += 2
           break
         // closepath command
         case 'z':
@@ -328,13 +326,24 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
   var commands = pathData.match(/[a-df-z][^a-df-z]*/ig)
   var tokens = []
   for(var i = 0; i < commands.length; i++) {
-    var token = {}
+    var token = {
+      command: '',
+      args: [],
+      points: []
+    }
     var args = commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g)
     if(args == null) {
       args = [0]
     }
     for(var p = 0; p < args.length; p++) {
       args[p] = parseScientific(args[p])
+    }
+    for(var p = 0; p < args.length; p+=2) {
+      var point = {
+        x: parseScientific(args[p]),
+        y: parseScientific(args[p+1])
+      }
+      token.points.push(point)
     }
     token.command = commands[i][0]
     token.args = args
