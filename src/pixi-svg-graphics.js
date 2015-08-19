@@ -13,6 +13,7 @@ SVGGraphics.prototype.drawNode = function (node) {
   var graphics = new PIXI.Graphics()
   var tagName = node.tagName
   var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1)
+  this.applyTransformation(node, graphics)
   if (!this['draw' + capitalizedTagName + 'Node']) {
     console.warn('No drawing behavior for ' + capitalizedTagName + ' node')
   } else {
@@ -41,7 +42,6 @@ SVGGraphics.prototype.drawGNode = function (node) {
   for (var i = 0, len = children.length; i < len; i++) {
     child = children[i]
     if (child.nodeType !== 1) { continue }
-    this.applyTransformation(child,graphics)
     graphics.addChild(this.drawNode(child))
   }
   return graphics
@@ -79,10 +79,10 @@ SVGGraphics.prototype.drawLineNode = function (node) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
 
-  var x1 = parseFloat(node.getAttribute('x1'))
-  var y1 = parseFloat(node.getAttribute('y1'))
-  var x2 = parseFloat(node.getAttribute('x2'))
-  var y2 = parseFloat(node.getAttribute('y2'))
+  var x1 = parseScientific(node.getAttribute('x1'))
+  var y1 = parseScientific(node.getAttribute('y1'))
+  var x2 = parseScientific(node.getAttribute('x2'))
+  var y2 = parseScientific(node.getAttribute('y2'))
 
   graphics.moveTo(x1, y1)
   graphics.lineTo(x2, y2)
@@ -106,8 +106,8 @@ SVGGraphics.prototype.drawPolylineNode = function (node) {
     point = points[i]
     var coords = point.match(new RegExp(reg))
 
-    coords[1] = parseFloat(coords[1])
-    coords[2] = parseFloat(coords[2])
+    coords[1] = parseScientific(coords[1])
+    coords[2] = parseScientific(coords[2])
 
     if (i === 0) {
       graphics.moveTo(coords[1], coords[2])
@@ -126,9 +126,9 @@ SVGGraphics.prototype.drawCircleNode = function (node) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
 
-  var cx = parseFloat(node.getAttribute('cx'))
-  var cy = parseFloat(node.getAttribute('cy'))
-  var r = parseFloat(node.getAttribute('r'))
+  var cx = parseScientific(node.getAttribute('cx'))
+  var cy = parseScientific(node.getAttribute('cy'))
+  var r = parseScientific(node.getAttribute('r'))
 
   graphics.drawCircle(cx, cy, r)
   return graphics
@@ -142,10 +142,10 @@ SVGGraphics.prototype.drawEllipseNode = function (node) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
 
-  var cx = parseFloat(node.getAttribute('cx'))
-  var cy = parseFloat(node.getAttribute('cy'))
-  var rx = parseFloat(node.getAttribute('rx'))
-  var ry = parseFloat(node.getAttribute('ry'))
+  var cx = parseScientific(node.getAttribute('cx'))
+  var cy = parseScientific(node.getAttribute('cy'))
+  var rx = parseScientific(node.getAttribute('rx'))
+  var ry = parseScientific(node.getAttribute('ry'))
 
   graphics.drawEllipse(cx, cy, rx, ry)
   return graphics
@@ -159,12 +159,11 @@ SVGGraphics.prototype.drawRectNode = function (node) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
 
-  var x = parseFloat(node.getAttribute('x'))
-  var y = parseFloat(node.getAttribute('y'))
-  var width = parseFloat(node.getAttribute('width'))
-  var height = parseFloat(node.getAttribute('height'))
+  var x = parseScientific(node.getAttribute('x'))
+  var y = parseScientific(node.getAttribute('y'))
+  var width = parseScientific(node.getAttribute('width'))
+  var height = parseScientific(node.getAttribute('height'))
 
-  this.applyTransformation(node, graphics)
   graphics.drawRect(x, y, width, height)
   return graphics
 }
@@ -184,8 +183,8 @@ SVGGraphics.prototype.drawPolygonNode = function (node) {
     point = points[i]
     var coords = point.match(new RegExp(reg))
 
-    coords[1] = parseFloat(coords[1])
-    coords[2] = parseFloat(coords[2])
+    coords[1] = parseScientific(coords[1])
+    coords[2] = parseScientific(coords[2])
 
     path.push(new PIXI.Point(
       coords[1],
@@ -219,10 +218,14 @@ SVGGraphics.prototype.drawPathNode = function (node) {
   for (var i = 0, len = commands.length; i < len; i++) {
     command = commands[i]
     var commandType = command[0]
-    var args = command.slice(1).trim().split(/[\s,]+|(?=\s?[+\-])/)
+    //var args = command.slice(1).trim().split(/[\s,]+|(?=\s?[+\-])/)
+    var args = command.slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g)
 
+    if (args == null) {
+      args = [0]
+    }
     for (j = 0, argslen = args.length; j < argslen; j++) {
-      args[j] = parseFloat(args[j])
+      args[j] = parseScientific(args[j])
     }
 
     var z = 0
@@ -341,38 +344,37 @@ SVGGraphics.prototype.applyTransformation = function (node, graphics) {
       var transformCommand = transformAttr[0]
       var transformValues = transformAttr[1].replace(')','').split(',')
       if(transformCommand == 'matrix') {
-        transformMatrix.a   = parseFloat(transformValues[0])
-        transformMatrix.b   = parseFloat(transformValues[1])
-        transformMatrix.c   = parseFloat(transformValues[2])
-        transformMatrix.d   = parseFloat(transformValues[3])
-        transformMatrix.tx  = parseFloat(transformValues[4])
-        transformMatrix.ty  = parseFloat(transformValues[5])
+        transformMatrix.a   = parseScientific(transformValues[0])
+        transformMatrix.b   = parseScientific(transformValues[1])
+        transformMatrix.c   = parseScientific(transformValues[2])
+        transformMatrix.d   = parseScientific(transformValues[3])
+        transformMatrix.tx  = parseScientific(transformValues[4])
+        transformMatrix.ty  = parseScientific(transformValues[5])
         var point = {x: 0, y: 0}
         var trans_point = transformMatrix.apply(point)
         graphics.x += trans_point.x
         graphics.y += trans_point.y
+        graphics.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b)
+        graphics.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d)
 
-        point = {x: 1, y: 1}
-        var scale_point = transformMatrix.apply(point)
-        graphics.scale.x = scale_point.x - trans_point.x
-        graphics.scale.y = scale_point.y - trans_point.y
+        graphics.rotation = -Math.acos(transformMatrix.a/graphics.scale.x)
       } else if(transformCommand == 'translate') {
-        graphics.x += parseFloat(transformValues[0])
-        graphics.y += parseFloat(transformValues[1])
+        graphics.x += parseScientific(transformValues[0])
+        graphics.y += parseScientific(transformValues[1])
       } else if(transformCommand == 'scale') {
-        graphics.scale.x = parseFloat(transformValues[0])
-        graphics.scale.y = parseFloat(transformValues[1])
+        graphics.scale.x = parseScientific(transformValues[0])
+        graphics.scale.y = parseScientific(transformValues[1])
       } else if(transformCommand == 'rotate') {
         if(transformValues.length > 1) {
-          graphics.x += parseFloat(transformValues[1])
-          graphics.y += parseFloat(transformValues[2])
+          graphics.x += parseScientific(transformValues[1])
+          graphics.y += parseScientific(transformValues[2])
         }
 
-        graphics.rotation = parseFloat(transformValues[0])
+        graphics.rotation = parseScientific(transformValues[0])
 
         if(transformValues.length > 1) {
-          graphics.x -= parseFloat(transformValues[1])
-          graphics.y -= parseFloat(transformValues[2])
+          graphics.x -= parseScientific(transformValues[1])
+          graphics.y -= parseScientific(transformValues[2])
         }
       }
     }
@@ -453,6 +455,21 @@ SVGGraphics.drawSVG = function (graphics, svg) {
     if (children[i].nodeType !== 1) { continue }
     svgGraphics._graphics.addChild(svgGraphics.drawNode(children[i]))
   }
+}
+
+var parseScientific = function(numberString) {
+  var info = /([\d\.]+)e-(\d+)/i.exec(numberString)
+  if(!info) {
+    return parseFloat(numberString)
+  }
+
+  var num = info[1].replace('.',''), numDecs = info[2] - 1
+  var output = "0."
+  for (var i = 0; i < numDecs; i++) {
+    output += "0"
+  }
+  output += num
+  return parseFloat(output)
 }
 
 module.exports = SVGGraphics;
