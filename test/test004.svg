@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="400"
+   height="400"
+   viewBox="0 0 400 400.00001"
+   id="svg3829"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="test004.svg">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
+     id="namedview8"
+     showgrid="false"
+     inkscape:zoom="0.59"
+     inkscape:cx="203.38983"
+     inkscape:cy="200"
+     inkscape:window-x="1920"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg3829" />
+  <defs
+     id="defs3831" />
+  <metadata
+     id="metadata3834">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <path
+     inkscape:connector-curvature="0"
+     d="m 313.18225,82.476209 c -23.20938,0 -41.55739,9.095609 -55.04393,27.286771 -13.48653,18.03431 -20.22982,42.81187 -20.22982,74.33282 0,31.5209 6.66481,56.37688 19.9946,74.5681 13.48654,18.03425 31.91287,27.05143 55.27915,27.05143 23.05253,0 41.32217,-9.0956 54.80882,-27.28666 13.48637,-18.19121 20.22972,-42.96893 20.22972,-74.33287 0,-31.2072 -6.74335,-55.90638 -20.22972,-74.0976 C 354.50442,91.650188 336.23478,82.476209 313.18225,82.476209 Z m -170.32508,-27.5714 c 37.63685,0 67.19751,12.231953 88.68197,36.695914 21.4843,24.463967 32.22657,58.337177 32.22657,101.619537 0,43.12562 -10.74227,76.99883 -32.22657,101.61959 -21.48446,24.46396 -51.04512,36.69602 -88.68197,36.69602 -37.79369,0 -67.432742,-12.23206 -88.917122,-36.69602 -21.32756,-24.62076 -31.99135,-58.49397 -31.99135,-101.61959 0,-43.28236 10.66379,-77.15557 31.99135,-101.619537 21.48438,-24.463961 51.123432,-36.695914 88.917122,-36.695914 z"
+     id="path3548" />
+</svg>
