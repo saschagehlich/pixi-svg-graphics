@@ -1,3 +1,5 @@
+<a href="https://travis-ci.org/GreyRook/pixi-svg-graphics"><img src="https://travis-ci.org/GreyRook/pixi-svg-graphics.svg?branch=master" align=right></a>
+
 PIXI-SVG-Graphics
 ====================
 
