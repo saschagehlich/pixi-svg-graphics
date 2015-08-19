@@ -205,41 +205,28 @@ SVGGraphics.prototype.drawPathNode = function (node) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
   var d = node.getAttribute('d').trim()
-  var commands = d.match(/[a-df-z][^a-df-z]*/ig)
-  var command, lastControl
+  var tokens = this.tokenizePathData(d)
+  var lastControl
   var lastCoord = {
     x: 0,
     y: 0
   }
-  var triangles = []
-  var j, argslen
-  var pathIndex = 0
 
-  for (var i = 0, len = commands.length; i < len; i++) {
-    command = commands[i]
-    var commandType = command[0]
-    //var args = command.slice(1).trim().split(/[\s,]+|(?=\s?[+\-])/)
-    var args = command.slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g)
-
-    if (args == null) {
-      args = [0]
-    }
-    for (j = 0, argslen = args.length; j < argslen; j++) {
-      args[j] = parseScientific(args[j])
-    }
-
+  for (var i = 0; i < tokens.length; i++) {
+    var command = tokens[i].command
+    var args = tokens[i].args
     var z = 0
     while (z < args.length) {
       var offset = {
         x: 0,
         y: 0
       }
-      if (commandType === commandType.toLowerCase()) {
+      if (command === command.toLowerCase()) {
         // Relative positions
         offset = lastCoord
       }
 
-      switch (commandType.toLowerCase()) {
+      switch (command.toLowerCase()) {
         // moveto command
         case 'm':
           args[z] += offset.x
@@ -337,47 +324,70 @@ SVGGraphics.prototype.drawPathNode = function (node) {
   return graphics
 }
 
+SVGGraphics.prototype.tokenizePathData = function(pathData) {
+  var commands = pathData.match(/[a-df-z][^a-df-z]*/ig)
+  var tokens = []
+  for(var i = 0; i < commands.length; i++) {
+    var token = {}
+    var args = commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g)
+    if(args == null) {
+      args = [0]
+    }
+    for(var p = 0; p < args.length; p++) {
+      args[p] = parseScientific(args[p])
+    }
+    token.command = commands[i][0]
+    token.args = args
+    tokens.push(token)
+  }
+  return tokens
+}
+
+SVGGraphics.prototype.getPathDirection = function(path) {
+
+}
+
 SVGGraphics.prototype.applyTransformation = function (node, graphics) {
-    if (node.getAttribute('transform')) {
-      var transformMatrix = new PIXI.Matrix()
-      var transformAttr = node.getAttribute('transform').trim().split('(')
-      var transformCommand = transformAttr[0]
-      var transformValues = transformAttr[1].replace(')','').split(',')
-      if(transformCommand == 'matrix') {
-        transformMatrix.a   = parseScientific(transformValues[0])
-        transformMatrix.b   = parseScientific(transformValues[1])
-        transformMatrix.c   = parseScientific(transformValues[2])
-        transformMatrix.d   = parseScientific(transformValues[3])
-        transformMatrix.tx  = parseScientific(transformValues[4])
-        transformMatrix.ty  = parseScientific(transformValues[5])
-        var point = {x: 0, y: 0}
-        var trans_point = transformMatrix.apply(point)
-        graphics.x += trans_point.x
-        graphics.y += trans_point.y
-        graphics.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b)
-        graphics.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d)
+  if (node.getAttribute('transform')) {
+    var transformMatrix = new PIXI.Matrix()
+    var transformAttr = node.getAttribute('transform').trim().split('(')
+    var transformCommand = transformAttr[0]
+    var transformValues = transformAttr[1].replace(')','').split(',')
+    if(transformCommand == 'matrix') {
+      transformMatrix.a   = parseScientific(transformValues[0])
+      transformMatrix.b   = parseScientific(transformValues[1])
+      transformMatrix.c   = parseScientific(transformValues[2])
+      transformMatrix.d   = parseScientific(transformValues[3])
+      transformMatrix.tx  = parseScientific(transformValues[4])
+      transformMatrix.ty  = parseScientific(transformValues[5])
+      var point = {x: 0, y: 0}
+      var trans_point = transformMatrix.apply(point)
+      graphics.x += trans_point.x
+      graphics.y += trans_point.y
+      graphics.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b)
+      graphics.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d)
 
-        graphics.rotation = -Math.acos(transformMatrix.a/graphics.scale.x)
-      } else if(transformCommand == 'translate') {
-        graphics.x += parseScientific(transformValues[0])
-        graphics.y += parseScientific(transformValues[1])
-      } else if(transformCommand == 'scale') {
-        graphics.scale.x = parseScientific(transformValues[0])
-        graphics.scale.y = parseScientific(transformValues[1])
-      } else if(transformCommand == 'rotate') {
-        if(transformValues.length > 1) {
-          graphics.x += parseScientific(transformValues[1])
-          graphics.y += parseScientific(transformValues[2])
-        }
+      graphics.rotation = -Math.acos(transformMatrix.a/graphics.scale.x)
+    } else if(transformCommand == 'translate') {
+      graphics.x += parseScientific(transformValues[0])
+      graphics.y += parseScientific(transformValues[1])
+    } else if(transformCommand == 'scale') {
+      graphics.scale.x = parseScientific(transformValues[0])
+      graphics.scale.y = parseScientific(transformValues[1])
+    } else if(transformCommand == 'rotate') {
+      if(transformValues.length > 1) {
+        graphics.x += parseScientific(transformValues[1])
+        graphics.y += parseScientific(transformValues[2])
+      }
 
-        graphics.rotation = parseScientific(transformValues[0])
+      graphics.rotation = parseScientific(transformValues[0])
 
-        if(transformValues.length > 1) {
-          graphics.x -= parseScientific(transformValues[1])
-          graphics.y -= parseScientific(transformValues[2])
-        }
+      if(transformValues.length > 1) {
+        graphics.x -= parseScientific(transformValues[1])
+        graphics.y -= parseScientific(transformValues[2])
       }
     }
+  }
 }
 
 /**
