@@ -458,7 +458,7 @@ SVGGraphics.prototype.getPathDirection = function(path) {
   for(var i = 0; i < points.length - 1; i++) {
     var curPoint = points[i]
     var nexPoint = points[(i+1)]
-    sum += (nexPoint.x - curPoint.x)*(nexPoint.y - curPoint.y)
+    sum += (nexPoint.x - curPoint.x)*(nexPoint.y + curPoint.y)
   }
   if(sum > 0) {
     //clockwise
