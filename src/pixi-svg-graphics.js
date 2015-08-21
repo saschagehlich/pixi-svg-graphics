@@ -205,14 +205,24 @@ SVGGraphics.prototype.drawPathNode = function (node) {
   var graphics = new PIXI.Graphics()
   this.applySvgAttributes(node, graphics)
   var d = node.getAttribute('d').trim()
-  var tokens = this.tokenizePathData(d)
-  var lastControl
+  var data = this.tokenizePathData(d)
+  return this.drawPathData(data,graphics)
+}
 
-  for (var i = 0; i < tokens.length; i++) {
-    var command = tokens[i].command
-    var args = tokens[i].args
-    var points = tokens[i].points
+/**
+ * Draw the given tokenized path data object
+ */
+SVGGraphics.prototype.drawPathData = function (data, graphics) {
+  var instructions = data.instructions
+  var lastControl = {x:0, y:0}
+  var subpathIndex = 0
+
+  for (var i = 0; i < instructions.length; i++) {
+    var command = instructions[i].command
+    var args = instructions[i].args
+    var points = instructions[i].points
     var z = 0
+    var fill = true
     while (z < points.length) {
       switch (command.toLowerCase()) {
         // moveto command
@@ -220,7 +230,16 @@ SVGGraphics.prototype.drawPathNode = function (node) {
           var x = points[z].x
           var y = points[z].y
 
-          if (z == 0) {
+          //check if we need to create "holes"
+          var direction = lastDirection = data.subpaths[subpathIndex].direction
+          if(subpathIndex > 0) {
+            lastDirection = data.subpaths[subpathIndex-1].direction
+            if(direction != lastDirection) {
+              fill = false
+            }
+          }
+
+          if (z == 0 && fill) {
             graphics.moveTo(x, y)
             graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = false
           } else {
@@ -230,8 +249,8 @@ SVGGraphics.prototype.drawPathNode = function (node) {
           break
         // lineto command
         case 'l':
-          var x = points[z].x 
-          var y = points[z].y 
+          var x = points[z].x
+          var y = points[z].y
 
           graphics.lineTo(x, y)
           z += 1
@@ -290,11 +309,12 @@ SVGGraphics.prototype.drawPathNode = function (node) {
         // closepath command
         case 'z':
           z += 1
+          subpathIndex += 1
           graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = true
           // Z command is handled by M
           break
         default:
-          throw new Error('Could not handle path command: ' + commandType + ' ' + args.join(','))
+          throw new Error('Could not handle path command: ' + command + ' ' + args.join(','))
       }
     }
   }
@@ -303,19 +323,28 @@ SVGGraphics.prototype.drawPathNode = function (node) {
 
 SVGGraphics.prototype.tokenizePathData = function(pathData) {
   var commands = pathData.match(/[a-df-z][^a-df-z]*/ig)
-  var tokens = []
+  var data = {
+    instructions: [],
+    subpaths: []
+  }
+
+  //needed to calculate absolute position of points
   var lastPoint = {
     x: 0,
     y: 0
   }
+  var subpaths = []
+  var subpath = {
+    points: []
+  }
   for(var i = 0; i < commands.length; i++) {
-    var token = {
-      command: '',
-      args: [],
+    var instruction = {
       points: []
     }
     var command = commands[i][0]
     var args = []
+
+    //allow any decimal number in normal or scientific form
     args = args.concat(commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g))
     var p = 0
     while(p < args.length) {
@@ -330,23 +359,25 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
       var points = []
       switch(command.toLowerCase()) {
         case 'm':
-          var point = {x:0,y:0}
+          var point = {}
           point.x = parseScientific(args[p]) + offset.x
           point.y = parseScientific(args[p+1]) + offset.y
           points.push(point)
           lastPoint = point
+          subpath.points.push(lastPoint)
           p += 2
           break
         case 'l':
-          var point = {x:0,y:0}
+          var point = {}
           point.x = parseScientific(args[p]) + offset.x
           point.y = parseScientific(args[p+1]) + offset.y
           points.push(point)
           lastPoint = point
+          subpath.points.push(lastPoint)
           p += 2
           break
         case 'c':
-          var point1 = {x:0,y:0} , point2 = {x:0,y:0} , point3 = {x:0,y:0}
+          var point1 = {} , point2 = {} , point3 = {}
           point1.x = parseScientific(args[p]) + offset.x
           point1.y = parseScientific(args[p+1]) + offset.y
           point2.x = parseScientific(args[p+2]) + offset.x
@@ -357,26 +388,29 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           points.push(point2)
           points.push(point3)
           lastPoint = point3
+          subpath.points.push(lastPoint)
           p += 6
           break
         case 'v':
-          var point = {x:0,y:0}
+          var point = {}
           point.y = parseScientific(args[p]) + offset.y
           point.x = lastPoint.x
           points.push(point)
           lastPoint = point
+          subpath.points.push(lastPoint)
           p += 1
           break
         case 'h':
-          var point = {x:0,y:0}
+          var point = {}
           point.x = parseScientific(args[p]) + offset.x
           point.y = lastPoint.y
           points.push(point)
           lastPoint = point
+          subpath.points.push(lastPoint)
           p += 1
           break
         case 's':
-          var point1 = {x:0,y:0} , point2 = {x:0,y:0}
+          var point1 = {} , point2 = {}
           point1.x = parseScientific(args[p]) + offset.x
           point1.y = parseScientific(args[p+1]) + offset.y
           point2.x = parseScientific(args[p+2]) + offset.x
@@ -384,22 +418,51 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           points.push(point1)
           points.push(point2)
           lastPoint = point2
-          p += 2
+          subpath.points.push(lastPoint)
+          p += 4
           break
         case 'z':
+          points.push({x:0,y:0})
+          //subpath is closed so we need to push the subpath
+          subpath.direction = this.getPathDirection(subpath)
+          subpaths.push(subpath)
+          subpath = {
+            points: []
+          }
           p += 1
+          break
       }
-      token.points = token.points.concat(points)
+      instruction.points = instruction.points.concat(points)
     }
-    token.command = command
-    token.args = args
-    tokens.push(token)
+    instruction.command = command
+    data.instructions.push(instruction)
   }
-  return tokens
+
+  //If path data ends with no z command, then we need to push the last subpath
+  if(subpath.points.length > 0) {
+    subpath.direction = this.getPathDirection(subpath)
+    subpaths.push(subpath)
+  }
+  data.subpaths = subpaths
+  return data
 }
 
 SVGGraphics.prototype.getPathDirection = function(path) {
-
+  //based on http://stackoverflow.com/a/1584377
+  var points = path.points
+  var sum = 0
+  for(var i = 0; i < points.length - 1; i++) {
+    var curPoint = points[i]
+    var nexPoint = points[(i+1)]
+    sum += (nexPoint.x - curPoint.x)*(nexPoint.y - curPoint.y)
+  }
+  if(sum > 0) {
+    //clockwise
+    return 'cw'
+  } else {
+    //counter-clockwise
+    return 'ccw'
+  }
 }
 
 SVGGraphics.prototype.applyTransformation = function (node, graphics) {
