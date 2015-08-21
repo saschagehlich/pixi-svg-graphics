@@ -207,10 +207,6 @@ SVGGraphics.prototype.drawPathNode = function (node) {
   var d = node.getAttribute('d').trim()
   var tokens = this.tokenizePathData(d)
   var lastControl
-  var lastCoord = {
-    x: 0,
-    y: 0
-  }
 
   for (var i = 0; i < tokens.length; i++) {
     var command = tokens[i].command
@@ -218,20 +214,11 @@ SVGGraphics.prototype.drawPathNode = function (node) {
     var points = tokens[i].points
     var z = 0
     while (z < points.length) {
-      var offset = {
-        x: 0,
-        y: 0
-      }
-      if (command === command.toLowerCase()) {
-        // Relative positions
-        offset = lastCoord
-      }
-
       switch (command.toLowerCase()) {
         // moveto command
         case 'm':
-          var x = points[z].x += offset.x
-          var y = points[z].y += offset.y
+          var x = points[z].x
+          var y = points[z].y
 
           if (z == 0) {
             graphics.moveTo(x, y)
@@ -239,25 +226,18 @@ SVGGraphics.prototype.drawPathNode = function (node) {
           } else {
             graphics.lineTo(x, y)
           }
-          lastCoord = points[z]
           z += 1
           break
         // lineto command
         case 'l':
-          var x = points[z].x += offset.x
-          var y = points[z].y += offset.y
+          var x = points[z].x 
+          var y = points[z].y 
 
           graphics.lineTo(x, y)
-          lastCoord = points[z]
           z += 1
           break
         // curveto command
         case 'c':
-          for (var k = 0; k < 3; k++) {
-            points[z + k].x += offset.x
-            points[z + k].y += offset.y
-          }
-
           graphics.bezierCurveTo(
             points[z].x,
             points[z].y,
@@ -266,35 +246,35 @@ SVGGraphics.prototype.drawPathNode = function (node) {
             points[z + 2].x,
             points[z + 2].y
           )
-          lastCoord = points[z + 2]
           lastControl = points[z + 1]
           z += 3
           break
         // vertial lineto command
         case 'v':
-          var y = points[z].y + offset.y
+          var x = points[z].x
+          var y = points[z].y
 
-          graphics.lineTo(lastCoord.x, y)
+          graphics.lineTo(x, y)
           lastCoord.y = y
           z += 1
           break
         // horizontal lineto command
         case 'h':
-          var x = points[z].x + offset.x
+          var x = points[z].x
+          var y = points[z].y
 
-          graphics.lineTo(x, lastCoord.y)
-          lastCoord.x = x
+          graphics.lineTo(x, y)
           z += 1
           break
         // quadratic curve command
         case 's':
           for (var l = 0; l < 2; l++) {
-            points[l + z].x += offset.x
-            points[l + z].y += offset.y
+            points[l + z].x
+            points[l + z].y
           }
 
-          var rx = 2 * lastCoord.x - lastControl.x
-          var ry = 2 * lastCoord.y - lastControl.y
+          var rx = 2 * points[z-1].x - lastControl.x
+          var ry = 2 * points[z-1].y - lastControl.y
 
           graphics.bezierCurveTo(
             rx,
@@ -304,7 +284,6 @@ SVGGraphics.prototype.drawPathNode = function (node) {
             points[z + 1],
             points[z + 1]
           )
-          lastCoord = points[z + 1]
           lastControl = points[z]
           z += 2
           break
@@ -325,27 +304,94 @@ SVGGraphics.prototype.drawPathNode = function (node) {
 SVGGraphics.prototype.tokenizePathData = function(pathData) {
   var commands = pathData.match(/[a-df-z][^a-df-z]*/ig)
   var tokens = []
+  var lastPoint = {
+    x: 0,
+    y: 0
+  }
   for(var i = 0; i < commands.length; i++) {
     var token = {
       command: '',
       args: [],
       points: []
     }
-    var args = commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g)
-    if(args == null) {
-      args = [0]
-    }
-    for(var p = 0; p < args.length; p++) {
-      args[p] = parseScientific(args[p])
-    }
-    for(var p = 0; p < args.length; p+=2) {
-      var point = {
-        x: parseScientific(args[p]),
-        y: parseScientific(args[p+1])
+    var command = commands[i][0]
+    var args = []
+    args = args.concat(commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g))
+    var p = 0
+    while(p < args.length) {
+      var offset = {
+        x: 0,
+        y: 0
       }
-      token.points.push(point)
+      if (command === command.toLowerCase()) {
+        // Relative positions
+        offset = lastPoint
+      }
+      var points = []
+      switch(command.toLowerCase()) {
+        case 'm':
+          var point = {x:0,y:0}
+          point.x = parseScientific(args[p]) + offset.x
+          point.y = parseScientific(args[p+1]) + offset.y
+          points.push(point)
+          lastPoint = point
+          p += 2
+          break
+        case 'l':
+          var point = {x:0,y:0}
+          point.x = parseScientific(args[p]) + offset.x
+          point.y = parseScientific(args[p+1]) + offset.y
+          points.push(point)
+          lastPoint = point
+          p += 2
+          break
+        case 'c':
+          var point1 = {x:0,y:0} , point2 = {x:0,y:0} , point3 = {x:0,y:0}
+          point1.x = parseScientific(args[p]) + offset.x
+          point1.y = parseScientific(args[p+1]) + offset.y
+          point2.x = parseScientific(args[p+2]) + offset.x
+          point2.y = parseScientific(args[p+3]) + offset.y
+          point3.x = parseScientific(args[p+4]) + offset.x
+          point3.y = parseScientific(args[p+5]) + offset.y
+          points.push(point1)
+          points.push(point2)
+          points.push(point3)
+          lastPoint = point3
+          p += 6
+          break
+        case 'v':
+          var point = {x:0,y:0}
+          point.y = parseScientific(args[p]) + offset.y
+          point.x = lastPoint.x
+          points.push(point)
+          lastPoint = point
+          p += 1
+          break
+        case 'h':
+          var point = {x:0,y:0}
+          point.x = parseScientific(args[p]) + offset.x
+          point.y = lastPoint.y
+          points.push(point)
+          lastPoint = point
+          p += 1
+          break
+        case 's':
+          var point1 = {x:0,y:0} , point2 = {x:0,y:0}
+          point1.x = parseScientific(args[p]) + offset.x
+          point1.y = parseScientific(args[p+1]) + offset.y
+          point2.x = parseScientific(args[p+2]) + offset.x
+          point2.y = parseScientific(args[p+3]) + offset.y
+          points.push(point1)
+          points.push(point2)
+          lastPoint = point2
+          p += 2
+          break
+        case 'z':
+          p += 1
+      }
+      token.points = token.points.concat(points)
     }
-    token.command = commands[i][0]
+    token.command = command
     token.args = args
     tokens.push(token)
   }
