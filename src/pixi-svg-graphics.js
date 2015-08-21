@@ -233,6 +233,7 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
           var y = points[z].y
 
           //check if we need to create "holes"
+          var lastDirection
           var direction = lastDirection = data.subpaths[subpathIndex].direction
           if(subpathIndex > 0) {
             lastDirection = data.subpaths[subpathIndex-1].direction
@@ -276,7 +277,6 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
           var y = points[z].y
 
           graphics.lineTo(x, y)
-          lastCoord.y = y
           z += 1
           break
         // horizontal lineto command
@@ -337,10 +337,12 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
   }
   var subpaths = []
   var subpath = {
-    points: []
+    points: [],
+    direction: ''
   }
   for(var i = 0; i < commands.length; i++) {
     var instruction = {
+      command: '',
       points: []
     }
     var command = commands[i][0]
