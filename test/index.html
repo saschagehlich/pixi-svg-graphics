@@ -7,7 +7,7 @@
     <script src="../lib/pixi.min.js"></script>
     <script src="../dist/pixi-svg-graphics.js"></script>
     <script>
-        var renderer = PIXI.autoDetectRenderer(400, 400, {
+        var renderer = new PIXI.CanvasRenderer(400, 400, {
             antialias: true,
             backgroundColor: 0xFFFFFF
         });
