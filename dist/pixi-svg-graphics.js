@@ -54,6 +54,8 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/* @flow weak */
+
 	var PIXI = __webpack_require__(1)
 	var color2color = __webpack_require__(2)
 
@@ -126,6 +128,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  pixi_text.y = node.getAttribute('y')
 	  return graphics.addChild(pixi_text)
 	}
+
 
 	/**
 	 * Draws the given line svg node
@@ -270,7 +273,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawPathData = function (data, graphics) {
 	  var instructions = data.instructions
-	  var lastControl
+	  var lastControl = {x:0, y:0}
 	  var subpathIndex = 0
 
 	  for (var i = 0; i < instructions.length; i++) {
@@ -287,6 +290,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          var y = points[z].y
 
 	          //check if we need to create "holes"
+	          var lastDirection
 	          var direction = lastDirection = data.subpaths[subpathIndex].direction
 	          if(subpathIndex > 0) {
 	            lastDirection = data.subpaths[subpathIndex-1].direction
@@ -330,7 +334,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	          var y = points[z].y
 
 	          graphics.lineTo(x, y)
-	          lastCoord.y = y
 	          z += 1
 	          break
 	        // horizontal lineto command
@@ -370,7 +373,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          // Z command is handled by M
 	          break
 	        default:
-	          throw new Error('Could not handle path command: ' + commandType + ' ' + args.join(','))
+	          throw new Error('Could not handle path command: ' + command + ' ' + args.join(','))
 	      }
 	    }
 	  }
@@ -391,10 +394,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 	  var subpaths = []
 	  var subpath = {
-	    points: []
+	    points: [],
+	    direction: ''
 	  }
 	  for(var i = 0; i < commands.length; i++) {
 	    var instruction = {
+	      command: '',
 	      points: []
 	    }
 	    var command = commands[i][0]
@@ -419,8 +424,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	          point.x = parseScientific(args[p]) + offset.x
 	          point.y = parseScientific(args[p+1]) + offset.y
 	          points.push(point)
+	          subpath.points.push(point)
 	          lastPoint = point
-	          subpath.points.push(lastPoint)
 	          p += 2
 	          break
 	        case 'l':
@@ -428,8 +433,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	          point.x = parseScientific(args[p]) + offset.x
 	          point.y = parseScientific(args[p+1]) + offset.y
 	          points.push(point)
+	          subpath.points.push(point)
 	          lastPoint = point
-	          subpath.points.push(lastPoint)
 	          p += 2
 	          break
 	        case 'c':
@@ -443,8 +448,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	          points.push(point1)
 	          points.push(point2)
 	          points.push(point3)
+	          subpath.points.push(point1)
+	          subpath.points.push(point2)
+	          subpath.points.push(point3)
 	          lastPoint = point3
-	          subpath.points.push(lastPoint)
 	          p += 6
 	          break
 	        case 'v':
@@ -452,8 +459,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	          point.y = parseScientific(args[p]) + offset.y
 	          point.x = lastPoint.x
 	          points.push(point)
+	          subpath.points.push(point)
 	          lastPoint = point
-	          subpath.points.push(lastPoint)
 	          p += 1
 	          break
 	        case 'h':
@@ -461,8 +468,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	          point.x = parseScientific(args[p]) + offset.x
 	          point.y = lastPoint.y
 	          points.push(point)
+	          subpath.points.push(point)
 	          lastPoint = point
-	          subpath.points.push(lastPoint)
 	          p += 1
 	          break
 	        case 's':
@@ -474,7 +481,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	          points.push(point1)
 	          points.push(point2)
 	          lastPoint = point2
-	          subpath.points.push(lastPoint)
+	          subpath.points.push(point1)
+	          subpath.points.push(point2)
 	          p += 4
 	          break
 	        case 'z':
@@ -510,7 +518,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  for(var i = 0; i < points.length - 1; i++) {
 	    var curPoint = points[i]
 	    var nexPoint = points[(i+1)]
-	    sum += (nexPoint.x - curPoint.x)*(nexPoint.y - curPoint.y)
+	    sum += (nexPoint.x - curPoint.x)*(nexPoint.y + curPoint.y)
 	  }
 	  if(sum > 0) {
 	    //clockwise
