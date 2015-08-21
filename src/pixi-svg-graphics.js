@@ -1,4 +1,6 @@
-var PIXI = require('pixi.js')
+/* @flow weak */
+
+var PIXI = require('PIXI')
 var color2color = require('./vendor/color2color')
 
 function SVGGraphics (graphics) {

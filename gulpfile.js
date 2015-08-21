@@ -23,7 +23,7 @@ gulp.task('webpack', function () {
         root: sourceFiles
       },
       externals: {
-        'pixi.js': {
+        'PIXI': {
           root: 'PIXI',
           commonjs: 'pixi.js',
           commonjs2: 'pixi.js',
