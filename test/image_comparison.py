@@ -40,7 +40,7 @@ def image_similarity_histogram_via_pil(filepath1, filepath2):
     return rms
 
 
-def get_thumbnail(image, size=(256, 256), stretch_to_fit=False, greyscale=False):
+def get_thumbnail(image, size=(200, 200), stretch_to_fit=False, greyscale=False):
     """get a smaller version of the image - makes comparison much faster/easier"""
     if not stretch_to_fit:
         image.thumbnail(size, Image.ANTIALIAS)
@@ -56,6 +56,7 @@ def get_thumbnail(image, size=(256, 256), stretch_to_fit=False, greyscale=False)
 def compare(filepath1, filepath2):
     s = image_similarity_bands_via_numpy(filepath1, filepath2)
     rms = image_similarity_histogram_via_pil(filepath1, filepath2)
+    print s, rms
 
     return s < 12000 and rms < 16
 
