@@ -69,7 +69,9 @@ def main():
     time.sleep(1)
 
     subprocess.call('test/convert_test_images.sh')
-    images_bad = []
+    images_s_bad = []
+    images_rms_bad = []
+    images_good = []
     images = os.listdir('test/src')
     images.sort()
     for image in images:
@@ -80,21 +82,33 @@ def main():
             time.sleep(1)
         i = t.screenshot_element('output')
         i.save('test/out/' + image + '.png')
-        if not image_comparison.compare('test/out/' + image + '.png', 'test/ref/' + image + '.png'):
-            images_bad.append(image)
+        comparisons = image_comparison.compare('test/out/' + image + '.png', 'test/ref/' + image + '.png')
+        if not comparisons['s']:
+            images_s_bad.append(image)
+        if not comparisons['rms']:
+            images_rms_bad.append(image)
+        if image not in images_s_bad and image not in images_rms_bad:
+            images_good.append(image)
 
     FAIL = '\033[91m'
     OKGREEN = '\033[92m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    HEADER = '\033[95m'
 
-    print '\n' + BOLD + 'Test Results (' + \
-            str(len(images) - len(images_bad)) + '/' + str(len(images)) + ' passed)' + \
+    print '\n' + HEADER + 'Test Results (' + \
+            str(len(images_good)) + '/' + str(len(images)) + ' passed)' + \
             ENDC + '\n'
+    print BOLD + 'filename \t bands \t histogram' + ENDC
     for image in images:
         output = image
-        if image in images_bad:
-            output += '\t ' + FAIL + '[FAILED]'
+        if image in images_s_bad:
+            output += '\t ' + FAIL + '[FAIL]'
+        else:
+            output += '\t ' + OKGREEN + '[OK]'
+        if image in images_rms_bad:
+            output += '\t ' + FAIL + '[FAIL]'
         else:
             output += '\t ' + OKGREEN + '[OK]'
         print output + ENDC

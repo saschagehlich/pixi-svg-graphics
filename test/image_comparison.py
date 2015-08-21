@@ -58,7 +58,7 @@ def compare(filepath1, filepath2):
     rms = image_similarity_histogram_via_pil(filepath1, filepath2)
     print s, rms
 
-    return s < 12000 and rms < 16
+    return {'s': s < 12000, 'rms': rms < 16}
 
 
 def main():
