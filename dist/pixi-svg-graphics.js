@@ -135,10 +135,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var graphics = new PIXI.Graphics()
 	  this.applySvgAttributes(node, graphics)
 
-	  var x1 = parseFloat(node.getAttribute('x1'))
-	  var y1 = parseFloat(node.getAttribute('y1'))
-	  var x2 = parseFloat(node.getAttribute('x2'))
-	  var y2 = parseFloat(node.getAttribute('y2'))
+	  var x1 = parseScientific(node.getAttribute('x1'))
+	  var y1 = parseScientific(node.getAttribute('y1'))
+	  var x2 = parseScientific(node.getAttribute('x2'))
+	  var y2 = parseScientific(node.getAttribute('y2'))
 
 	  graphics.moveTo(x1, y1)
 	  graphics.lineTo(x2, y2)
@@ -162,8 +162,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    point = points[i]
 	    var coords = point.match(new RegExp(reg))
 
-	    coords[1] = parseFloat(coords[1])
-	    coords[2] = parseFloat(coords[2])
+	    coords[1] = parseScientific(coords[1])
+	    coords[2] = parseScientific(coords[2])
 
 	    if (i === 0) {
 	      graphics.moveTo(coords[1], coords[2])
@@ -182,9 +182,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var graphics = new PIXI.Graphics()
 	  this.applySvgAttributes(node, graphics)
 
-	  var cx = parseFloat(node.getAttribute('cx'))
-	  var cy = parseFloat(node.getAttribute('cy'))
-	  var r = parseFloat(node.getAttribute('r'))
+	  var cx = parseScientific(node.getAttribute('cx'))
+	  var cy = parseScientific(node.getAttribute('cy'))
+	  var r = parseScientific(node.getAttribute('r'))
 
 	  graphics.drawCircle(cx, cy, r)
 	  return graphics
@@ -198,10 +198,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var graphics = new PIXI.Graphics()
 	  this.applySvgAttributes(node, graphics)
 
-	  var cx = parseFloat(node.getAttribute('cx'))
-	  var cy = parseFloat(node.getAttribute('cy'))
-	  var rx = parseFloat(node.getAttribute('rx'))
-	  var ry = parseFloat(node.getAttribute('ry'))
+	  var cx = parseScientific(node.getAttribute('cx'))
+	  var cy = parseScientific(node.getAttribute('cy'))
+	  var rx = parseScientific(node.getAttribute('rx'))
+	  var ry = parseScientific(node.getAttribute('ry'))
 
 	  graphics.drawEllipse(cx, cy, rx, ry)
 	  return graphics
@@ -215,10 +215,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var graphics = new PIXI.Graphics()
 	  this.applySvgAttributes(node, graphics)
 
-	  var x = parseFloat(node.getAttribute('x'))
-	  var y = parseFloat(node.getAttribute('y'))
-	  var width = parseFloat(node.getAttribute('width'))
-	  var height = parseFloat(node.getAttribute('height'))
+	  var x = parseScientific(node.getAttribute('x'))
+	  var y = parseScientific(node.getAttribute('y'))
+	  var width = parseScientific(node.getAttribute('width'))
+	  var height = parseScientific(node.getAttribute('height'))
 
 	  graphics.drawRect(x, y, width, height)
 	  return graphics
@@ -239,8 +239,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    point = points[i]
 	    var coords = point.match(new RegExp(reg))
 
-	    coords[1] = parseFloat(coords[1])
-	    coords[2] = parseFloat(coords[2])
+	    coords[1] = parseScientific(coords[1])
+	    coords[2] = parseScientific(coords[2])
 
 	    path.push(new PIXI.Point(
 	      coords[1],
@@ -261,123 +261,111 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var graphics = new PIXI.Graphics()
 	  this.applySvgAttributes(node, graphics)
 	  var d = node.getAttribute('d').trim()
-	  var commands = d.match(/[a-df-z][^a-df-z]*/ig)
-	  var command, lastControl
-	  var lastCoord = {
-	    x: 0,
-	    y: 0
-	  }
-	  var triangles = []
-	  var j, argslen
-	  var pathIndex = 0
+	  var data = this.tokenizePathData(d)
+	  return this.drawPathData(data,graphics)
+	}
 
-	  for (var i = 0, len = commands.length; i < len; i++) {
-	    command = commands[i]
-	    var commandType = command[0]
-	    var args = command.slice(1).trim().split(/[\s,]+|(?=\s?[+\-])/)
+	/**
+	 * Draw the given tokenized path data object
+	 */
+	SVGGraphics.prototype.drawPathData = function (data, graphics) {
+	  var instructions = data.instructions
+	  var lastControl
+	  var subpathIndex = 0
 
-	    for (j = 0, argslen = args.length; j < argslen; j++) {
-	      args[j] = Number(args[j])
-	    }
-
+	  for (var i = 0; i < instructions.length; i++) {
+	    var command = instructions[i].command
+	    var args = instructions[i].args
+	    var points = instructions[i].points
 	    var z = 0
-	    while (z < args.length) {
-	      var offset = {
-	        x: 0,
-	        y: 0
-	      }
-	      if (commandType === commandType.toLowerCase()) {
-	        // Relative positions
-	        offset = lastCoord
-	      }
-
-	      switch (commandType.toLowerCase()) {
+	    var fill = true
+	    while (z < points.length) {
+	      switch (command.toLowerCase()) {
 	        // moveto command
 	        case 'm':
-	          args[z] += offset.x
-	          args[z + 1] += offset.y
+	          var x = points[z].x
+	          var y = points[z].y
 
-	          if (z == 0) {
-	            graphics.moveTo(args[z], args[z + 1])
+	          //check if we need to create "holes"
+	          var direction = lastDirection = data.subpaths[subpathIndex].direction
+	          if(subpathIndex > 0) {
+	            lastDirection = data.subpaths[subpathIndex-1].direction
+	            if(direction != lastDirection) {
+	              fill = false
+	            }
+	          }
+
+	          if (z == 0 && fill) {
+	            graphics.moveTo(x, y)
 	            graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = false
 	          } else {
-	            graphics.lineTo(args[z], args[z+1])
+	            graphics.lineTo(x, y)
 	          }
-	          lastCoord = { x: args[z], y: args[z + 1] }
-	          z += 2
+	          z += 1
 	          break
 	        // lineto command
 	        case 'l':
-	          args[z] += offset.x
-	          args[z + 1] += offset.y
+	          var x = points[z].x
+	          var y = points[z].y
 
-	          graphics.lineTo(
-	            args[z],
-	            args[z + 1]
-	          )
-	          lastCoord = { x: args[z], y: args[z + 1] }
-	          z += 2
+	          graphics.lineTo(x, y)
+	          z += 1
 	          break
 	        // curveto command
 	        case 'c':
-	          for (var k = 0; k < 6; k += 2) {
-	            args[k + z] += offset.x
-	            args[k + z + 1] += offset.y
-	          }
-
 	          graphics.bezierCurveTo(
-	            args[z],
-	            args[z + 1],
-	            args[z + 2],
-	            args[z + 3],
-	            args[z + 4],
-	            args[z + 5]
+	            points[z].x,
+	            points[z].y,
+	            points[z + 1].x,
+	            points[z + 1].y,
+	            points[z + 2].x,
+	            points[z + 2].y
 	          )
-	          lastCoord = { x: args[z + 4], y: args[z + 5] }
-	          lastControl = { x: args[z + 2], y: args[z + 3] }
-	          z += 6
+	          lastControl = points[z + 1]
+	          z += 3
 	          break
 	        // vertial lineto command
 	        case 'v':
-	          args[z] += offset.y
+	          var x = points[z].x
+	          var y = points[z].y
 
-	          graphics.lineTo(lastCoord.x, args[0])
-	          lastCoord.y = args[0]
+	          graphics.lineTo(x, y)
+	          lastCoord.y = y
 	          z += 1
 	          break
 	        // horizontal lineto command
 	        case 'h':
-	          args[z] += offset.x
+	          var x = points[z].x
+	          var y = points[z].y
 
-	          graphics.lineTo(args[z], lastCoord.y)
-	          lastCoord.x = args[z]
+	          graphics.lineTo(x, y)
 	          z += 1
 	          break
 	        // quadratic curve command
 	        case 's':
-	          for (var l = 0; l < 4; l += 2) {
-	            args[l + z] += offset.x
-	            args[l + z + 1] += offset.y
+	          for (var l = 0; l < 2; l++) {
+	            points[l + z].x
+	            points[l + z].y
 	          }
 
-	          var rx = 2 * lastCoord.x - lastControl.x
-	          var ry = 2 * lastCoord.y - lastControl.y
+	          var rx = 2 * points[z-1].x - lastControl.x
+	          var ry = 2 * points[z-1].y - lastControl.y
 
 	          graphics.bezierCurveTo(
 	            rx,
 	            ry,
-	            args[z],
-	            args[z + 1],
-	            args[z + 2],
-	            args[z + 3]
+	            points[z],
+	            points[z],
+	            points[z + 1],
+	            points[z + 1]
 	          )
-	          lastCoord = { x: args[z + 2], y: args[z + 3] }
-	          lastControl = { x: args[z], y: args[z + 1] }
-	          z += 4
+	          lastControl = points[z]
+	          z += 2
 	          break
 	        // closepath command
 	        case 'z':
 	          z += 1
+	          subpathIndex += 1
 	          graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = true
 	          // Z command is handled by M
 	          break
@@ -389,47 +377,191 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return graphics
 	}
 
+	SVGGraphics.prototype.tokenizePathData = function(pathData) {
+	  var commands = pathData.match(/[a-df-z][^a-df-z]*/ig)
+	  var data = {
+	    instructions: [],
+	    subpaths: []
+	  }
+
+	  //needed to calculate absolute position of points
+	  var lastPoint = {
+	    x: 0,
+	    y: 0
+	  }
+	  var subpaths = []
+	  var subpath = {
+	    points: []
+	  }
+	  for(var i = 0; i < commands.length; i++) {
+	    var instruction = {
+	      points: []
+	    }
+	    var command = commands[i][0]
+	    var args = []
+
+	    //allow any decimal number in normal or scientific form
+	    args = args.concat(commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g))
+	    var p = 0
+	    while(p < args.length) {
+	      var offset = {
+	        x: 0,
+	        y: 0
+	      }
+	      if (command === command.toLowerCase()) {
+	        // Relative positions
+	        offset = lastPoint
+	      }
+	      var points = []
+	      switch(command.toLowerCase()) {
+	        case 'm':
+	          var point = {}
+	          point.x = parseScientific(args[p]) + offset.x
+	          point.y = parseScientific(args[p+1]) + offset.y
+	          points.push(point)
+	          lastPoint = point
+	          subpath.points.push(lastPoint)
+	          p += 2
+	          break
+	        case 'l':
+	          var point = {}
+	          point.x = parseScientific(args[p]) + offset.x
+	          point.y = parseScientific(args[p+1]) + offset.y
+	          points.push(point)
+	          lastPoint = point
+	          subpath.points.push(lastPoint)
+	          p += 2
+	          break
+	        case 'c':
+	          var point1 = {} , point2 = {} , point3 = {}
+	          point1.x = parseScientific(args[p]) + offset.x
+	          point1.y = parseScientific(args[p+1]) + offset.y
+	          point2.x = parseScientific(args[p+2]) + offset.x
+	          point2.y = parseScientific(args[p+3]) + offset.y
+	          point3.x = parseScientific(args[p+4]) + offset.x
+	          point3.y = parseScientific(args[p+5]) + offset.y
+	          points.push(point1)
+	          points.push(point2)
+	          points.push(point3)
+	          lastPoint = point3
+	          subpath.points.push(lastPoint)
+	          p += 6
+	          break
+	        case 'v':
+	          var point = {}
+	          point.y = parseScientific(args[p]) + offset.y
+	          point.x = lastPoint.x
+	          points.push(point)
+	          lastPoint = point
+	          subpath.points.push(lastPoint)
+	          p += 1
+	          break
+	        case 'h':
+	          var point = {}
+	          point.x = parseScientific(args[p]) + offset.x
+	          point.y = lastPoint.y
+	          points.push(point)
+	          lastPoint = point
+	          subpath.points.push(lastPoint)
+	          p += 1
+	          break
+	        case 's':
+	          var point1 = {} , point2 = {}
+	          point1.x = parseScientific(args[p]) + offset.x
+	          point1.y = parseScientific(args[p+1]) + offset.y
+	          point2.x = parseScientific(args[p+2]) + offset.x
+	          point2.y = parseScientific(args[p+3]) + offset.y
+	          points.push(point1)
+	          points.push(point2)
+	          lastPoint = point2
+	          subpath.points.push(lastPoint)
+	          p += 4
+	          break
+	        case 'z':
+	          points.push({x:0,y:0})
+	          //subpath is closed so we need to push the subpath
+	          subpath.direction = this.getPathDirection(subpath)
+	          subpaths.push(subpath)
+	          subpath = {
+	            points: []
+	          }
+	          p += 1
+	          break
+	      }
+	      instruction.points = instruction.points.concat(points)
+	    }
+	    instruction.command = command
+	    data.instructions.push(instruction)
+	  }
+
+	  //If path data ends with no z command, then we need to push the last subpath
+	  if(subpath.points.length > 0) {
+	    subpath.direction = this.getPathDirection(subpath)
+	    subpaths.push(subpath)
+	  }
+	  data.subpaths = subpaths
+	  return data
+	}
+
+	SVGGraphics.prototype.getPathDirection = function(path) {
+	  //based on http://stackoverflow.com/a/1584377
+	  var points = path.points
+	  var sum = 0
+	  for(var i = 0; i < points.length - 1; i++) {
+	    var curPoint = points[i]
+	    var nexPoint = points[(i+1)]
+	    sum += (nexPoint.x - curPoint.x)*(nexPoint.y - curPoint.y)
+	  }
+	  if(sum > 0) {
+	    //clockwise
+	    return 'cw'
+	  } else {
+	    //counter-clockwise
+	    return 'ccw'
+	  }
+	}
+
 	SVGGraphics.prototype.applyTransformation = function (node, graphics) {
-	    if (node.getAttribute('transform')) {
-	      var transformMatrix = new PIXI.Matrix()
-	      var transformAttr = node.getAttribute('transform').trim().split('(')
-	      var transformCommand = transformAttr[0]
-	      var transformValues = transformAttr[1].replace(')','').split(',')
-	      if(transformCommand == 'matrix') {
-	        transformMatrix.a   = parseFloat(transformValues[0])
-	        transformMatrix.b   = parseFloat(transformValues[1])
-	        transformMatrix.c   = parseFloat(transformValues[2])
-	        transformMatrix.d   = parseFloat(transformValues[3])
-	        transformMatrix.tx  = parseFloat(transformValues[4])
-	        transformMatrix.ty  = parseFloat(transformValues[5])
-	        var point = {x: 0, y: 0}
-	        var trans_point = transformMatrix.apply(point)
-	        graphics.x += trans_point.x
-	        graphics.y += trans_point.y
-	        graphics.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b)
-	        graphics.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d)
+	  if (node.getAttribute('transform')) {
+	    var transformMatrix = new PIXI.Matrix()
+	    var transformAttr = node.getAttribute('transform').trim().split('(')
+	    var transformCommand = transformAttr[0]
+	    var transformValues = transformAttr[1].replace(')','').split(',')
+	    if(transformCommand == 'matrix') {
+	      transformMatrix.a   = parseScientific(transformValues[0])
+	      transformMatrix.b   = parseScientific(transformValues[1])
+	      transformMatrix.c   = parseScientific(transformValues[2])
+	      transformMatrix.d   = parseScientific(transformValues[3])
+	      transformMatrix.tx  = parseScientific(transformValues[4])
+	      transformMatrix.ty  = parseScientific(transformValues[5])
+	      var point = {x: 0, y: 0}
+	      var trans_point = transformMatrix.apply(point)
+	      graphics.x += trans_point.x
+	      graphics.y += trans_point.y
+	      graphics.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b)
+	      graphics.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d)
 
-	        graphics.rotation = -Math.acos(transformMatrix.a/graphics.scale.x)
-	      } else if(transformCommand == 'translate') {
-	        graphics.x += parseFloat(transformValues[0])
-	        graphics.y += parseFloat(transformValues[1])
-	      } else if(transformCommand == 'scale') {
-	        graphics.scale.x = parseFloat(transformValues[0])
-	        graphics.scale.y = parseFloat(transformValues[1])
-	      } else if(transformCommand == 'rotate') {
-	        if(transformValues.length > 1) {
-	          graphics.x += parseFloat(transformValues[1])
-	          graphics.y += parseFloat(transformValues[2])
-	        }
+	      graphics.rotation = -Math.acos(transformMatrix.a/graphics.scale.x)
+	    } else if(transformCommand == 'translate') {
+	      graphics.x += parseScientific(transformValues[0])
+	      graphics.y += parseScientific(transformValues[1])
+	    } else if(transformCommand == 'scale') {
+	      graphics.scale.x = parseScientific(transformValues[0])
+	      graphics.scale.y = parseScientific(transformValues[1])
+	    } else if(transformCommand == 'rotate') {
+	      if(transformValues.length > 1) {
+	        graphics.x += parseScientific(transformValues[1])
+	        graphics.y += parseScientific(transformValues[2])
+	      }
 
-	        graphics.rotation = parseFloat(transformValues[0])
+	      graphics.rotation = parseScientific(transformValues[0])
 
-	        if(transformValues.length > 1) {
-	          graphics.x -= parseFloat(transformValues[1])
-	          graphics.y -= parseFloat(transformValues[2])
-	        }
+	      if(transformValues.length > 1) {
+	        graphics.x -= parseScientific(transformValues[1])
+	        graphics.y -= parseScientific(transformValues[2])
 	      }
 	    }
+	  }
 	}
 
 	/**
@@ -507,6 +639,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (children[i].nodeType !== 1) { continue }
 	    svgGraphics._graphics.addChild(svgGraphics.drawNode(children[i]))
 	  }
+	}
+
+	var parseScientific = function(numberString) {
+	  var info = /([\d\.]+)e-(\d+)/i.exec(numberString)
+	  if(!info) {
+	    return parseFloat(numberString)
+	  }
+
+	  var num = info[1].replace('.',''), numDecs = info[2] - 1
+	  var output = "0."
+	  for (var i = 0; i < numDecs; i++) {
+	    output += "0"
+	  }
+	  output += num
+	  return parseFloat(output)
 	}
 
 	module.exports = SVGGraphics;
