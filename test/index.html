@@ -27,6 +27,7 @@
                 antialias: true,
                 backgroundColor: 0x909090
             });
+            renderer.view.id = 'output';
             document.body.appendChild(renderer.view);
             for(var i = 0; i < testImages.length; i++) {
                 (function(i){
