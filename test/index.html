@@ -7,51 +7,32 @@
     <script src="../lib/pixi.min.js"></script>
     <script src="../dist/pixi-svg-graphics.js"></script>
     <script>
+        var renderer = PIXI.autoDetectRenderer(400, 400, {
+            antialias: true,
+            backgroundColor: 0xFFFFFF
+        });
+        var ready = false;
+        var changeTestImage = function (testImage) {
+            ready = false;
+            var graphics = new PIXI.Graphics()
+            var request = new XMLHttpRequest();
+            request.open('GET', testImage, true);
+            request.onreadystatechange = function () {
+                if (request.readyState == 4) {
+                    SVGGraphics.drawSVG(graphics, request.responseXML);
+                    renderer.render(graphics);
+                    ready = true;
+                }
+            };
+            request.send(null);
+        };
+        var checkReady = function() {
+            return ready;
+        };
         window.onload = function () {
-            // Create renderer and view
-            var testImages = [
-                'test001.svg',
-                'test002.svg',
-                'test003.svg',
-                'test004.svg',
-                'test005.svg',
-                'test006.svg',
-                'test007.svg',
-                'test008.svg',
-                'test009.svg',
-                'test010.svg',
-            ];
-            var testImageSize = 400;
-            var container = new PIXI.Container();
-            var renderer = PIXI.autoDetectRenderer(testImageSize*testImages.length, 400, {
-                antialias: true,
-                backgroundColor: 0x909090
-            });
             renderer.view.id = 'output';
             document.body.appendChild(renderer.view);
-            for(var i = 0; i < testImages.length; i++) {
-                (function(i){
-                    var graphics = new PIXI.Graphics()
-                    graphics.scale.x = 1
-                    graphics.scale.y = 1
-                    graphics.x += testImageSize*i;
-                    container.addChild(graphics);
-                    var request = new XMLHttpRequest();
-                    request.open('GET', testImages[i], true);
-                    request.onreadystatechange = function () {
-                        if (request.readyState == 4) {
-                            SVGGraphics.drawSVG(graphics, request.responseXML);
-                            renderer.render(container);
-                        }
-                    };
-                    request.send(null);
-                    var img = document.createElement('img');
-                    img.src = testImages[i];
-                    document.getElementById('original_imgs').appendChild(img);
-                })(i)
-            }
         };
     </script>
-    <div id='original_imgs' style='white-space: nowrap'></div>
   </body>
 </html>

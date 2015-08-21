@@ -2,9 +2,12 @@ import os
 import json
 import cStringIO
 import sys
+import time
+import subprocess
 
 from PIL import Image
 import selenium.webdriver
+import image_comparison
 
 
 def get_browserstack_webdriver(capabilities):
@@ -63,13 +66,38 @@ def main():
     driver.get('http://127.0.0.1:8000/test/index.html')
 
     t = TestRunner(driver)
-    i = t.screenshot_element('output')
-    i.save('test.png')
-    # self.driver.execute_script('set_test_svg('1.svg');')
+    time.sleep(1)
 
-    #while self.driver.execute_script('return check_ready()'):
-    #    print 'player still undefined'
-    #    time.sleep(1)
+    subprocess.call('test/convert_test_images.sh')
+    images_bad = []
+    images = os.listdir('test/src')
+    images.sort()
+    for image in images:
+        if not image.endswith('.svg'):
+            continue
+        driver.execute_script('changeTestImage("src/' + image + '");')
+        while not driver.execute_script('return checkReady();'):
+            time.sleep(1)
+        i = t.screenshot_element('output')
+        i.save('test/out/' + image + '.png')
+        if not image_comparison.compare('test/out/' + image + '.png', 'test/ref/' + image + '.png'):
+            images_bad.append(image)
+
+    FAIL = '\033[91m'
+    OKGREEN = '\033[92m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+
+    print '\n' + BOLD + 'Test Results (' + \
+            str(len(images) - len(images_bad)) + '/' + str(len(images)) + ' passed)' + \
+            ENDC + '\n'
+    for image in images:
+        output = image
+        if image in images_bad:
+            output += '\t ' + FAIL + '[FAILED]'
+        else:
+            output += '\t ' + OKGREEN + '[OK]'
+        print output + ENDC
 
 if __name__ == '__main__':
     main()
