@@ -367,8 +367,8 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           point.x = parseScientific(args[p]) + offset.x
           point.y = parseScientific(args[p+1]) + offset.y
           points.push(point)
+          subpath.points.push(point)
           lastPoint = point
-          subpath.points.push(lastPoint)
           p += 2
           break
         case 'l':
@@ -376,8 +376,8 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           point.x = parseScientific(args[p]) + offset.x
           point.y = parseScientific(args[p+1]) + offset.y
           points.push(point)
+          subpath.points.push(point)
           lastPoint = point
-          subpath.points.push(lastPoint)
           p += 2
           break
         case 'c':
@@ -391,8 +391,10 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           points.push(point1)
           points.push(point2)
           points.push(point3)
+          subpath.points.push(point1)
+          subpath.points.push(point2)
+          subpath.points.push(point3)
           lastPoint = point3
-          subpath.points.push(lastPoint)
           p += 6
           break
         case 'v':
@@ -400,8 +402,8 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           point.y = parseScientific(args[p]) + offset.y
           point.x = lastPoint.x
           points.push(point)
+          subpath.points.push(point)
           lastPoint = point
-          subpath.points.push(lastPoint)
           p += 1
           break
         case 'h':
@@ -409,8 +411,8 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           point.x = parseScientific(args[p]) + offset.x
           point.y = lastPoint.y
           points.push(point)
+          subpath.points.push(point)
           lastPoint = point
-          subpath.points.push(lastPoint)
           p += 1
           break
         case 's':
@@ -422,7 +424,8 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           points.push(point1)
           points.push(point2)
           lastPoint = point2
-          subpath.points.push(lastPoint)
+          subpath.points.push(point1)
+          subpath.points.push(point2)
           p += 4
           break
         case 'z':
