@@ -48,4 +48,4 @@ gulp.task('watch', function() {
   gulp.watch('src/pixi-svg-graphics.js', ['webpack', 'uglify'])
 })
 
-gulp.task('default', ['watch'])
+gulp.task('default', ['webpack', 'uglify'])
