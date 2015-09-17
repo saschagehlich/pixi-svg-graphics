@@ -44,4 +44,8 @@ gulp.task('uglify', function () {
     .pipe(gulp.dest(path.resolve(__dirname, 'dist')))
 })
 
-gulp.task('default', ['webpack', 'uglify'])
+gulp.task('watch', function() {
+  gulp.watch('src/pixi-svg-graphics.js', ['webpack', 'uglify'])
+})
+
+gulp.task('default', ['watch'])
