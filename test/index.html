@@ -14,12 +14,11 @@
         var ready = false;
         var changeTestImage = function (testImage) {
             ready = false;
-            var graphics = new PIXI.Graphics()
             var request = new XMLHttpRequest();
             request.open('GET', testImage, true);
             request.onreadystatechange = function () {
                 if (request.readyState == 4) {
-                    SVGGraphics.drawSVG(graphics, request.responseXML);
+                    var graphics = new SVGGraphics(request.responseXML);
                     renderer.render(graphics);
                     ready = true;
                 }

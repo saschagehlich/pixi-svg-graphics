@@ -3,9 +3,13 @@
 var PIXI = require('PIXI')
 var color2color = require('./vendor/color2color')
 
-function SVGGraphics (graphics) {
-  this._graphics = graphics
+function SVGGraphics (svg) {
+  PIXI.Container.call(this);
+  this._svg = svg;
+  this.drawSVG(svg);
 }
+
+SVGGraphics.prototype = Object.create(PIXI.Container.prototype);
 
 /**
  * Draws the given node
@@ -582,13 +586,13 @@ SVGGraphics.prototype.applySvgAttributes = function (node, graphics) {
  * @param  {PIXI.Graphics} graphics
  * @param  {SVGDocument} svg
  */
-SVGGraphics.drawSVG = function (graphics, svg) {
-  var svgGraphics = new SVGGraphics(graphics)
-
+SVGGraphics.prototype.drawSVG = function (svg) {
   var children = svg.children || svg.childNodes
   for (var i = 0, len = children.length; i < len; i++) {
-    if (children[i].nodeType !== 1) { continue }
-    svgGraphics._graphics.addChild(svgGraphics.drawNode(children[i]))
+    if (children[i].nodeType !== 1) {
+      continue
+    }
+    this.addChild(this.drawNode(children[i]))
   }
 }
 
