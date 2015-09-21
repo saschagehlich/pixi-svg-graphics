@@ -4,16 +4,16 @@ var PIXI = require('PIXI')
 var color2color = require('./vendor/color2color')
 
 function SVGGraphics (svg) {
-  PIXI.Container.call(this);
+  PIXI.Graphics.call(this);
   this._scale = 1;
   this._svg = svg;
   this.drawSVG(svg);
 }
 
-SVGGraphics.prototype = Object.create(PIXI.Container.prototype);
+SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
 SVGGraphics.prototype.displayObjectUpdateTransform = function() {
-  PIXI.Container.prototype.displayObjectUpdateTransform.call(this);
+  PIXI.Graphics.prototype.displayObjectUpdateTransform.call(this);
   var wt = this.worldTransform;
 
   var scale = Math.min(Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2)),
@@ -54,6 +54,10 @@ SVGGraphics.prototype.drawNode = function (node) {
  */
 SVGGraphics.prototype.drawSvgNode = function (node) {
   var graphics = new PIXI.Graphics();
+  var width = node.getAttribute('width');
+  var height = node.getAttribute('height');
+  this.width = parseFloat(width);
+  this.height = parseFloat(height);
   return graphics.addChild(this.drawGNode(node));
 }
 
@@ -243,6 +247,7 @@ SVGGraphics.prototype.drawPathNode = function (node) {
 SVGGraphics.prototype.drawPathData = function (data, graphics) {
   var instructions = data.instructions;
   var lastControl = {x:0, y:0};
+  var lastCoord = {x:0, y:0};
   var subpathIndex = 0;
 
   for (var i = 0; i < instructions.length; i++) {
@@ -274,6 +279,7 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
           } else {
             graphics.lineTo(x, y);
           }
+          lastCoord = points[z];
           z += 1;
           break;
         // lineto command
@@ -282,6 +288,7 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
           var y = points[z].y;
 
           graphics.lineTo(x, y);
+          lastCoord = points[z];
           z += 1;
           break;
         // curveto command
@@ -295,6 +302,7 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
             points[z + 2].y
           );
           lastControl = points[z + 1];
+          lastCoord = points[z + 2];
           z += 3;
           break;
         // vertial lineto command
@@ -304,6 +312,7 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
 
           graphics.lineTo(x, y);
           z += 1;
+          lastCoord.y = y;
           break;
         // horizontal lineto command
         case 'h':
@@ -311,6 +320,7 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
           var y = points[z].y;
 
           graphics.lineTo(x, y);
+          lastCoord.x = x;
           z += 1;
           break;
         // quadratic curve command
@@ -320,8 +330,8 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
             points[l + z].y;
           }
 
-          var rx = 2 * points[z-1].x - lastControl.x;
-          var ry = 2 * points[z-1].y - lastControl.y;
+          var rx = 2 * lastCoord.x - lastControl.x;
+          var ry = 2 * lastCoord.y - lastControl.y;
 
           graphics.bezierCurveTo(
             rx,
@@ -331,6 +341,7 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
             points[z + 1],
             points[z + 1]
           );
+          lastCoord = points[z + 1];
           lastControl = points[z];
           z += 2;
           break;
