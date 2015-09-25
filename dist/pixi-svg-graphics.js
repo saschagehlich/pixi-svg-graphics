@@ -181,7 +181,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawLineNode = function (node) {
 	  var graphics = new PIXI.Graphics();
-	  this.applySvgAttributes(node, graphics);
+	  this.parseSvgAttributes(node, graphics);
 
 	  var x1 = parseScientific(node.getAttribute('x1'));
 	  var y1 = parseScientific(node.getAttribute('y1'));
@@ -200,7 +200,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawPolylineNode = function (node) {
 	  var graphics = new PIXI.Graphics();
-	  this.applySvgAttributes(node, graphics);
+	  this.parseSvgAttributes(node, graphics);
 
 	  var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)';
 	  var points = node.getAttribute('points').match(new RegExp(reg, 'g'));
@@ -228,7 +228,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawCircleNode = function (node) {
 	  var graphics = new PIXI.Graphics();
-	  this.applySvgAttributes(node, graphics);
+	  this.parseSvgAttributes(node, graphics);
 
 	  var cx = parseScientific(node.getAttribute('cx'));
 	  var cy = parseScientific(node.getAttribute('cy'));
@@ -244,7 +244,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawEllipseNode = function (node) {
 	  var graphics = new PIXI.Graphics();
-	  this.applySvgAttributes(node, graphics);
+	  this.parseSvgAttributes(node, graphics);
 
 	  var cx = parseScientific(node.getAttribute('cx'));
 	  var cy = parseScientific(node.getAttribute('cy'));
@@ -261,7 +261,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawRectNode = function (node) {
 	  var graphics = new PIXI.Graphics();
-	  this.applySvgAttributes(node, graphics);
+	  this.parseSvgAttributes(node, graphics);
 
 	  var x = parseScientific(node.getAttribute('x'));
 	  var y = parseScientific(node.getAttribute('y'));
@@ -296,7 +296,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    ));
 	  }
 
-	  this.applySvgAttributes(node, graphics);
+	  this.parseSvgAttributes(node, graphics);
 	  graphics.drawPolygon(path);
 	  return graphics;
 	}
@@ -307,7 +307,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawPathNode = function (node) {
 	  var graphics = new PIXI.Graphics();
-	  this.applySvgAttributes(node, graphics);
+	  this.parseSvgAttributes(node, graphics);
 	  var d = node.getAttribute('d').trim();
 	  var data = this.tokenizePathData(d);
 	  return this.drawPathData(data,graphics);
@@ -373,7 +373,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	            points[z + 2].x,
 	            points[z + 2].y
 	          );
-	          lastControl = points[z + 1];
 	          lastCoord = points[z + 2];
 	          z += 3;
 	          break;
@@ -405,7 +404,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	            points[z + 1].y
 	          );
 	          lastCoord = points[z + 1];
-	          lastControl = points[z];
 	          z += 2;
 	          break;
 	        // closepath command
@@ -619,7 +617,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * Applies the given node's attributes to our PIXI.Graphics object
 	 * @param  {SVGElement} node
 	 */
-	SVGGraphics.prototype.applySvgAttributes = function (node, graphics) {
+	SVGGraphics.prototype.parseSvgAttributes = function (node, graphics) {
 	  var attributes = {};
 
 	  // Get node attributes
@@ -636,6 +634,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  if(cssClass) {
 	    style = this._classes[cssClass];
 	  }
+	  this.applySvgAttributes(attributes, style, graphics);
+	}
+
+	SVGGraphics.prototype.applySvgAttributes = function(attributes, style, graphics) {
 	  var pairs, pair, split, key, value;
 	  if (style) {
 	    // Simply parse the inline css
@@ -668,7 +670,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    strokeWidth = parseInt(attributes['stroke-width'], 10);
 	  }
 
-	  var vectorEffect = node.getAttribute('vector-effect');
+	  var vectorEffect = attributes['vector-effect'];
 	  if (vectorEffect == 'non-scaling-stroke') {
 	    strokeWidth /= this._scale;
 	  }
