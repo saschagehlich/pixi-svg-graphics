@@ -575,29 +575,31 @@ SVGGraphics.prototype.parseSvgAttributes = function (node, graphics) {
   // CSS attributes override node attributes
   var style = node.getAttribute('style');
   var cssClasses = node.getAttribute('class').split(' ');
-  if(cssClasses[0]) {
-    style = this._classes[cssClasses[0]];
-  }
-  this.applySvgAttributes(attributes, style, graphics);
-}
+  for(var c in this._classes) {
+    if(cssClasses.indexOf(c) != -1) {
+      style = this._classes[c];
+      var pairs, pair, split, key, value;
+      if (style) {
+        // Simply parse the inline css
+        pairs = style.split(';');
+        for (var j = 0, len = pairs.length; j < len; j++) {
+          pair = pairs[j].trim();
+          if (!pair) {
+            continue;
+          }
 
-SVGGraphics.prototype.applySvgAttributes = function(attributes, style, graphics) {
-  var pairs, pair, split, key, value;
-  if (style) {
-    // Simply parse the inline css
-    pairs = style.split(';');
-    for (var j = 0, len = pairs.length; j < len; j++) {
-      pair = pairs[j].trim();
-      if (!pair) {
-        continue;
+          split = pair.split(':', 2);
+          key = split[0].trim();
+          value = split[1].trim();
+          attributes[key] = value;
+        }
       }
-
-      split = pair.split(':', 2);
-      key = split[0].trim();
-      value = split[1].trim();
-      attributes[key] = value;
     }
   }
+  this.applySvgAttributes(attributes, graphics);
+}
+
+SVGGraphics.prototype.applySvgAttributes = function(attributes, graphics) {
 
   // Apply stroke style
   var strokeColor = 0x000000, strokeWidth = 1, strokeAlpha = 0;
