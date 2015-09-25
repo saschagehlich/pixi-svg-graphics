@@ -630,9 +630,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  // CSS attributes override node attributes
 	  var style = node.getAttribute('style');
-	  var cssClass = node.getAttribute('class');
-	  if(cssClass) {
-	    style = this._classes[cssClass];
+	  var cssClasses = node.getAttribute('class').split(' ');
+	  if(cssClasses[0]) {
+	    style = this._classes[cssClasses[0]];
 	  }
 	  this.applySvgAttributes(attributes, style, graphics);
 	}
