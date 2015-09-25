@@ -60,16 +60,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	var color2color = __webpack_require__(2)
 
 	function SVGGraphics (svg) {
-	  PIXI.Container.call(this);
+	  PIXI.Graphics.call(this);
 	  this._scale = 1;
 	  this._svg = svg;
+	  this._classes = {};
 	  this.drawSVG(svg);
 	}
 
-	SVGGraphics.prototype = Object.create(PIXI.Container.prototype);
+	SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
 	SVGGraphics.prototype.displayObjectUpdateTransform = function() {
-	  PIXI.Container.prototype.displayObjectUpdateTransform.call(this);
+	  PIXI.Graphics.prototype.displayObjectUpdateTransform.call(this);
 	  var wt = this.worldTransform;
 
 	  var scale = Math.min(Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2)),
@@ -110,6 +111,25 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawSvgNode = function (node) {
 	  var graphics = new PIXI.Graphics();
+	  var width = node.getAttribute('width');
+	  var height = node.getAttribute('height');
+	  this.width = parseFloat(width);
+	  this.height = parseFloat(height);
+	  var children = node.children;
+	  for(var i = 0; i < children.length; i++) {
+	    var child = children[i];
+	    if(child.tagName == 'style') {
+	      var regAttr = /{([^}]*)}/g;
+	      var regName = /\.([^{;]*){/g;
+	      var classNames = child.childNodes[0].data.match(regName);
+	      var classAttrs = child.childNodes[0].data.match(regAttr);
+	      for(var p = 0; p < classNames.length; p++) {
+	        var className = classNames[p].substring(1, classNames[p].length - 1);
+	        var classAttr = classAttrs[p].substring(1, classAttrs[p].length - 1);
+	        this._classes[className] = classAttr;
+	      }
+	    }
+	  }
 	  return graphics.addChild(this.drawGNode(node));
 	}
 
@@ -299,6 +319,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	SVGGraphics.prototype.drawPathData = function (data, graphics) {
 	  var instructions = data.instructions;
 	  var lastControl = {x:0, y:0};
+	  var lastCoord = {x:0, y:0};
 	  var subpathIndex = 0;
 
 	  for (var i = 0; i < instructions.length; i++) {
@@ -330,6 +351,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          } else {
 	            graphics.lineTo(x, y);
 	          }
+	          lastCoord = points[z];
 	          z += 1;
 	          break;
 	        // lineto command
@@ -338,6 +360,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          var y = points[z].y;
 
 	          graphics.lineTo(x, y);
+	          lastCoord = points[z];
 	          z += 1;
 	          break;
 	        // curveto command
@@ -351,6 +374,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            points[z + 2].y
 	          );
 	          lastControl = points[z + 1];
+	          lastCoord = points[z + 2];
 	          z += 3;
 	          break;
 	        // vertial lineto command
@@ -360,6 +384,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	          graphics.lineTo(x, y);
 	          z += 1;
+	          lastCoord.y = y;
 	          break;
 	        // horizontal lineto command
 	        case 'h':
@@ -367,17 +392,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	          var y = points[z].y;
 
 	          graphics.lineTo(x, y);
+	          lastCoord.x = x;
 	          z += 1;
 	          break;
 	        // quadratic curve command
 	        case 's':
-	          for (var l = 0; l < 2; l++) {
-	            points[l + z].x;
-	            points[l + z].y;
-	          }
 
-	          var rx = 2 * points[z-1].x - lastControl.x;
-	          var ry = 2 * points[z-1].y - lastControl.y;
+	          var rx = 2 * lastCoord.x - lastControl.x;
+	          var ry = 2 * lastCoord.y - lastControl.y;
 
 	          graphics.bezierCurveTo(
 	            rx,
@@ -387,6 +409,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            points[z + 1],
 	            points[z + 1]
 	          );
+	          lastCoord = points[z + 1];
 	          lastControl = points[z];
 	          z += 2;
 	          break;
@@ -614,6 +637,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  // CSS attributes override node attributes
 	  var style = node.getAttribute('style');
+	  var cssClass = node.getAttribute('class');
+	  if(cssClass) {
+	    style = this._classes[cssClass];
+	  }
 	  var pairs, pair, split, key, value;
 	  if (style) {
 	    // Simply parse the inline css

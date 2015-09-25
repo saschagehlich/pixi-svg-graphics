@@ -7,6 +7,7 @@ function SVGGraphics (svg) {
   PIXI.Graphics.call(this);
   this._scale = 1;
   this._svg = svg;
+  this._classes = {};
   this.drawSVG(svg);
 }
 
@@ -58,6 +59,21 @@ SVGGraphics.prototype.drawSvgNode = function (node) {
   var height = node.getAttribute('height');
   this.width = parseFloat(width);
   this.height = parseFloat(height);
+  var children = node.children;
+  for(var i = 0; i < children.length; i++) {
+    var child = children[i];
+    if(child.tagName == 'style') {
+      var regAttr = /{([^}]*)}/g;
+      var regName = /\.([^{;]*){/g;
+      var classNames = child.childNodes[0].data.match(regName);
+      var classAttrs = child.childNodes[0].data.match(regAttr);
+      for(var p = 0; p < classNames.length; p++) {
+        var className = classNames[p].substring(1, classNames[p].length - 1);
+        var classAttr = classAttrs[p].substring(1, classAttrs[p].length - 1);
+        this._classes[className] = classAttr;
+      }
+    }
+  }
   return graphics.addChild(this.drawGNode(node));
 }
 
@@ -325,10 +341,6 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
           break;
         // quadratic curve command
         case 's':
-          for (var l = 0; l < 2; l++) {
-            points[l + z].x;
-            points[l + z].y;
-          }
 
           var rx = 2 * lastCoord.x - lastControl.x;
           var ry = 2 * lastCoord.y - lastControl.y;
@@ -569,6 +581,10 @@ SVGGraphics.prototype.applySvgAttributes = function (node, graphics) {
 
   // CSS attributes override node attributes
   var style = node.getAttribute('style');
+  var cssClass = node.getAttribute('class');
+  if(cssClass) {
+    style = this._classes[cssClass];
+  }
   var pairs, pair, split, key, value;
   if (style) {
     // Simply parse the inline css
