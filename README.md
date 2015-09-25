@@ -13,8 +13,7 @@ Using as a module
 ```js
 var svg = document.querySelector('svg#MySVGTag')
 var SVGGraphics = require('pixi-svg-graphics')
-var graphics = new PIXI.Graphics()
-SVGGraphics.drawSVG(graphics, svg)
+var graphics = new SVGGraphics(svg);
 ```
 
 Or just include pixi-svg-graphics.min.js in your HTML:
