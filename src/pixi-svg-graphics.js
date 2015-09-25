@@ -342,16 +342,11 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
         // quadratic curve command
         case 's':
 
-          var rx = 2 * lastCoord.x - lastControl.x;
-          var ry = 2 * lastCoord.y - lastControl.y;
-
-          graphics.bezierCurveTo(
-            rx,
-            ry,
-            points[z],
-            points[z],
-            points[z + 1],
-            points[z + 1]
+          graphics.quadraticCurveTo(
+            points[z].x,
+            points[z].y,
+            points[z + 1].x,
+            points[z + 1].y
           );
           lastCoord = points[z + 1];
           lastControl = points[z];
