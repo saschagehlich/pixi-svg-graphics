@@ -11,12 +11,13 @@ function SVGGraphics (svg) {
   this.drawSVG(svg);
 }
 
-PIXI.Graphics.prototype.lineStyle = function(lineWidth, color, alpha, segments, dashLength, spaceLength)
+PIXI.Graphics.prototype.lineStyle = function(lineWidth, color, alpha, segments, dashed, dashLength, spaceLength)
 {
     this.lineWidth = lineWidth || 0;
     this.lineColor = color || 0;
     this.lineAlpha = (arguments.length < 3) ? 1 : alpha;
     this.lineSegments = segments || 20;
+    this.lineDashed = dashed || false;
     this.lineDashLength = dashLength || 20;
     this.lineSpaceLength = spaceLength || 0;
  
@@ -40,64 +41,124 @@ PIXI.Graphics.prototype.lineStyle = function(lineWidth, color, alpha, segments, 
  
     return this;
 };
+
+PIXI.Graphics.prototype.lineTo = function (x, y) {
+    if(!this.lineDashed) {
+        this.currentPath.shape.points.push(x, y);
+    } else {
+        var points = this.currentPath.shape.points;
+        var fromX = points[points.length-2];
+        var fromY = points[points.length-1];
+        var distance = Math.abs(Math.sqrt(Math.pow(x-fromX,2) + Math.pow(y-fromY,2)));
+        if(distance <= this.lineDashLength) {
+            this.currentPath.shape.points.push(x, y);
+        } else {
+            var segments = this.lineDashLength / distance;
+            var dashOn = false;
+            var pX, pY;
+            for (var i = segments; i <= 1; i += segments) {
+                var t = Math.max(Math.min(i, 1), 0);
+                var x = fromX + (t * (x - fromX));
+                var y = fromY + (t * (y - fromY));
+                pX = x;
+                pY = y;
+                dashOn = !dashOn;
+                if (dashOn) {
+                    this.currentPath.shape.points.push(pX, pY);
+                } else {
+                    this.moveTo([pX, pY]);
+                }
+            }
+
+            dashOn = !dashOn;
+            if (dashOn && (pX != x && pY != y)) {
+                this.currentPath.shape.points.push(x, y);
+            }
+        }
+    }
+    this.dirty = true;
+
+    return this;
+}
+
 PIXI.Graphics.prototype.bezierCurveTo = function(cpX, cpY, cpX2, cpY2, toX, toY) {
-  if( this.currentPath )
-  {
-      if(this.currentPath.shape.points.length === 0)this.currentPath.shape.points = [0,0];
-  }
-  else
-  {
-      this.moveTo(0,0);
-  }
+    if( this.currentPath )
+    {
+        if(this.currentPath.shape.points.length === 0)this.currentPath.shape.points = [0,0];
+    }
+    else
+    {
+        this.moveTo(0,0);
+    }
 
-  var n = this.lineSegments,
-  dt,
-  dt2,
-  dt3,
-  t2,
-  t3,
-  points = this.currentPath.shape.points;
+    var n = this.lineSegments,
+    dt,
+    dt2,
+    dt3,
+    t2,
+    t3,
+    points = this.currentPath.shape.points;
 
-  var fromX = points[points.length-2];
-  var fromY = points[points.length-1];
-  
-  var j = 0;
-  var s = 0;
-  var d = 0;
+    var fromX = points[points.length-2];
+    var fromY = points[points.length-1];
+    
+    var j = 0;
+    var s = 0;
+    var d = 0;
 
-  //0 = drawSpace; 1 = drawLine
-  var state = 0;
+    //0 = drawSpace; 1 = drawLine
+    var state = 1;
+    var lPx = null, lPy = null;
 
-  for (var i=1; i<=n; i++)
-  {
-      j = i / n;
+    for (var i=1; i<=n; i++)
+    {
+        j = i / n;
 
-      dt = (1 - j);
-      dt2 = dt * dt;
-      dt3 = dt2 * dt;
+        dt = (1 - j);
+        dt2 = dt * dt;
+        dt3 = dt2 * dt;
 
-      t2 = j * j;
-      t3 = t2 * j;
-      nPx = dt3 * fromX + 3 * dt2 * j * cpX + 3 * dt * t2 * cpX2 + t3 * toX;
-      nPy = dt3 * fromY + 3 * dt2 * j * cpY + 3 * dt * t2 * cpY2 + t3 * toY;
-      if(s < this.lineSpaceLength) {
-        s++;
-      } else if(s != 0 && i != n && s == this.lineSpaceLength) {
-        this.moveTo([nPx, nPy]);
-        points = this.currentPath.shape.points;
-        s++;
-      } else if(d < this.lineDashLength) {
-        points.push(nPx, nPy);
-        d++;
-      } else if(d == this.lineDashLength) {
-        s = 0;
-        d = 0;
-      }
-  }
+        t2 = j * j;
+        t3 = t2 * j;
 
-  this.dirty = true;
+        //calculate next point
+        nPx = dt3 * fromX + 3 * dt2 * j * cpX + 3 * dt * t2 * cpX2 + t3 * toX;
+        nPy = dt3 * fromY + 3 * dt2 * j * cpY + 3 * dt * t2 * cpY2 + t3 * toY;
 
-  return this;
+        if(!this.lineDashed) {
+            points.push(nPx, nPy);
+            continue;
+        }
+
+        if(lPx == null) {
+            lPx = nPx;
+            lPy = nPy;
+        }
+
+        //calculate distance between last and next point
+        var distance = Math.abs(Math.sqrt(Math.pow(nPx-lPx,2)+Math.pow(nPy-lPy,2)));
+        if(state == 0) {
+            if(distance >= this.lineSpaceLength) {
+                lPx = nPx;
+                lPy = nPy;
+                this.moveTo([nPx, nPy]);
+                points = this.currentPath.shape.points;
+                state = 1;
+            }
+        } else if(state == 1) {
+            if(distance <= this.lineDashLength) {
+                points.push(nPx, nPy);
+            } else {
+                lPx = nPx;
+                lPy = nPy;
+                state = 0;
+            }
+        }
+    }
+
+    this.dirty = true;
+
+    return this;
 }
 
 PIXI.Graphics.prototype.quadraticCurveTo = function(cpX, cpY, toX, toY) {
@@ -121,8 +182,8 @@ PIXI.Graphics.prototype.quadraticCurveTo = function(cpX, cpY, toX, toY) {
   var fromY = points[points.length-1];
 
   var j = 0;
-  var s = 0;
-  var d = 0;
+  var state = 1;
+  var lPx = null, lPy = null;
   for (var i = 1; i <= n; i++ )
   {
       j = i / n;
@@ -130,20 +191,37 @@ PIXI.Graphics.prototype.quadraticCurveTo = function(cpX, cpY, toX, toY) {
       xa = fromX + ( (cpX - fromX) * j );
       ya = fromY + ( (cpY - fromY) * j );
 
-      if(s < this.lineSpaceLength) {
-        s++;
-      } else if(s != 0 && i != n && s == this.lineSpaceLength) {
-        this.moveTo([xa + ( ((cpX + ( (toX - cpX) * j )) - xa) * j ),
-                    ya + ( ((cpY + ( (toY - cpY) * j )) - ya) * j )]);
-        points = this.currentPath.shape.points;
-        s++;
-      } else if(d < this.lineDashLength) {
-        points.push( xa + ( ((cpX + ( (toX - cpX) * j )) - xa) * j ),
-                    ya + ( ((cpY + ( (toY - cpY) * j )) - ya) * j ));
-        d++;
-      } else if(d == this.lineDashLength) {
-        s = 0;
-        d = 0;
+      nPx = xa + ( ((cpX + ( (toX - cpX) * j )) - xa) * j );
+      nPy = ya + ( ((cpY + ( (toY - cpY) * j )) - ya) * j );
+
+      if(!this.lineDashed) {
+          points.push(nPx, nPy);
+          continue;
+      }
+
+      if(lPx == null) {
+        lPx = nPx;
+        lPy = nPy;
+      }
+
+      //calculate distance between last and next point
+      var distance = Math.abs(Math.sqrt(Math.pow(nPx-lPx,2)+Math.pow(nPy-lPy,2)));
+      if(state == 0) {
+        if(distance >= this.lineSpaceLength) {
+          lPx = nPx;
+          lPy = nPy;
+          this.moveTo([nPx, nPy]);
+          points = this.currentPath.shape.points;
+          state = 1;
+        }
+      } else if(state == 1) {
+        if(distance <= this.lineDashLength) {
+          points.push(nPx, nPy);
+        } else {
+          lPx = nPx;
+          lPy = nPy;
+          state = 0;
+        }
       }
   }
 
@@ -772,15 +850,16 @@ SVGGraphics.prototype.applySvgAttributes = function(attributes, graphics) {
     strokeWidth /= this._scale;
   }
 
-  var strokeSegments, strokeDashLength, strokeSpaceLength;
+  var strokeSegments, strokeDashLength, strokeSpaceLength, strokeDashed;
   if (attributes['stroke-dasharray']) {
     //ignore unregular dasharray
-    strokeDashLength = parseInt(attributes['stroke-dasharray'].split(',')[0]);
-    strokeSpaceLength = parseInt(attributes['stroke-dasharray'].split(',')[1]);
-    strokeSegments = 80;
+    strokeDashLength = parseFloat(attributes['stroke-dasharray'].split(',')[0]);
+    strokeSpaceLength = parseFloat(attributes['stroke-dasharray'].split(',')[1]);
+    strokeSegments = 100;
+    strokeDashed = true;
   }
 
-  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha, strokeSegments, strokeDashLength, strokeSpaceLength);
+  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha, strokeSegments, strokeDashed, strokeDashLength, strokeSpaceLength);
 
   // Apply fill style
   var fillColor = 0x000000, fillAlpha = 0;

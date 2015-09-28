@@ -67,6 +67,226 @@ return /******/ (function(modules) { // webpackBootstrap
 	  this.drawSVG(svg);
 	}
 
+	PIXI.Graphics.prototype.lineStyle = function(lineWidth, color, alpha, segments, dashed, dashLength, spaceLength)
+	{
+	    this.lineWidth = lineWidth || 0;
+	    this.lineColor = color || 0;
+	    this.lineAlpha = (arguments.length < 3) ? 1 : alpha;
+	    this.lineSegments = segments || 20;
+	    this.lineDashed = dashed || false;
+	    this.lineDashLength = dashLength || 20;
+	    this.lineSpaceLength = spaceLength || 0;
+	 
+	    if(this.currentPath)
+	    {
+	        if(this.currentPath.shape.points.length)
+	        {
+	            // halfway through a line? start a new one!
+	            this.drawShape( new PIXI.Polygon( this.currentPath.shape.points.slice(-2) ));
+	            return this;
+	        }
+	 
+	        // otherwise its empty so lets just set the line properties
+	        this.currentPath.lineWidth = this.lineWidth;
+	        this.currentPath.lineColor = this.lineColor;
+	        this.currentPath.lineAlpha = this.lineAlpha;
+	        this.currentPath.lineSegments = this.lineSegments;
+	        this.currentPath.lineDashLength = this.lineDashLength;
+	        this.currentPath.lineSpaceLength = this.lineSpaceLength;
+	    }
+	 
+	    return this;
+	};
+
+	PIXI.Graphics.prototype.lineTo = function (x, y) {
+	    if(!this.lineDashed) {
+	        this.currentPath.shape.points.push(x, y);
+	    } else {
+	        var points = this.currentPath.shape.points;
+	        var fromX = points[points.length-2];
+	        var fromY = points[points.length-1];
+	        var distance = Math.abs(Math.sqrt(Math.pow(x-fromX,2) + Math.pow(y-fromY,2)));
+	        if(distance <= this.lineDashLength) {
+	            this.currentPath.shape.points.push(x, y);
+	        } else {
+	            var segments = this.lineDashLength / distance;
+	            var dashOn = false;
+	            var pX, pY;
+	            for (var i = segments; i <= 1; i += segments) {
+	                var t = Math.max(Math.min(i, 1), 0);
+	                var x = fromX + (t * (x - fromX));
+	                var y = fromY + (t * (y - fromY));
+	                pX = x;
+	                pY = y;
+	                dashOn = !dashOn;
+	                if (dashOn) {
+	                    this.currentPath.shape.points.push(pX, pY);
+	                } else {
+	                    this.moveTo([pX, pY]);
+	                }
+	            }
+
+	            dashOn = !dashOn;
+	            if (dashOn && (pX != x && pY != y)) {
+	                this.currentPath.shape.points.push(x, y);
+	            }
+	        }
+	    }
+	    this.dirty = true;
+
+	    return this;
+	}
+
+	PIXI.Graphics.prototype.bezierCurveTo = function(cpX, cpY, cpX2, cpY2, toX, toY) {
+	    if( this.currentPath )
+	    {
+	        if(this.currentPath.shape.points.length === 0)this.currentPath.shape.points = [0,0];
+	    }
+	    else
+	    {
+	        this.moveTo(0,0);
+	    }
+
+	    var n = this.lineSegments,
+	    dt,
+	    dt2,
+	    dt3,
+	    t2,
+	    t3,
+	    points = this.currentPath.shape.points;
+
+	    var fromX = points[points.length-2];
+	    var fromY = points[points.length-1];
+	    
+	    var j = 0;
+	    var s = 0;
+	    var d = 0;
+
+	    //0 = drawSpace; 1 = drawLine
+	    var state = 1;
+	    var lPx = null, lPy = null;
+
+	    for (var i=1; i<=n; i++)
+	    {
+	        j = i / n;
+
+	        dt = (1 - j);
+	        dt2 = dt * dt;
+	        dt3 = dt2 * dt;
+
+	        t2 = j * j;
+	        t3 = t2 * j;
+
+	        //calculate next point
+	        nPx = dt3 * fromX + 3 * dt2 * j * cpX + 3 * dt * t2 * cpX2 + t3 * toX;
+	        nPy = dt3 * fromY + 3 * dt2 * j * cpY + 3 * dt * t2 * cpY2 + t3 * toY;
+
+	        if(!this.lineDashed) {
+	            points.push(nPx, nPy);
+	            continue;
+	        }
+
+	        if(lPx == null) {
+	            lPx = nPx;
+	            lPy = nPy;
+	        }
+
+	        //calculate distance between last and next point
+	        var distance = Math.abs(Math.sqrt(Math.pow(nPx-lPx,2)+Math.pow(nPy-lPy,2)));
+	        if(state == 0) {
+	            if(distance >= this.lineSpaceLength) {
+	                lPx = nPx;
+	                lPy = nPy;
+	                this.moveTo([nPx, nPy]);
+	                points = this.currentPath.shape.points;
+	                state = 1;
+	            }
+	        } else if(state == 1) {
+	            if(distance <= this.lineDashLength) {
+	                points.push(nPx, nPy);
+	            } else {
+	                lPx = nPx;
+	                lPy = nPy;
+	                state = 0;
+	            }
+	        }
+	    }
+
+	    this.dirty = true;
+
+	    return this;
+	}
+
+	PIXI.Graphics.prototype.quadraticCurveTo = function(cpX, cpY, toX, toY) {
+	  if( this.currentPath )
+	  {
+	      if(this.currentPath.shape.points.length === 0)this.currentPath.shape.points = [0,0];
+	  }
+	  else
+	  {
+	      this.moveTo(0,0);
+	  }
+
+	  var xa,
+	  ya,
+	  n = this.lineSegments,
+	  points = this.currentPath.shape.points;
+	  if(points.length === 0)this.moveTo(0, 0);
+
+
+	  var fromX = points[points.length-2];
+	  var fromY = points[points.length-1];
+
+	  var j = 0;
+	  var state = 1;
+	  var lPx = null, lPy = null;
+	  for (var i = 1; i <= n; i++ )
+	  {
+	      j = i / n;
+
+	      xa = fromX + ( (cpX - fromX) * j );
+	      ya = fromY + ( (cpY - fromY) * j );
+
+	      nPx = xa + ( ((cpX + ( (toX - cpX) * j )) - xa) * j );
+	      nPy = ya + ( ((cpY + ( (toY - cpY) * j )) - ya) * j );
+
+	      if(!this.lineDashed) {
+	          points.push(nPx, nPy);
+	          continue;
+	      }
+
+	      if(lPx == null) {
+	        lPx = nPx;
+	        lPy = nPy;
+	      }
+
+	      //calculate distance between last and next point
+	      var distance = Math.abs(Math.sqrt(Math.pow(nPx-lPx,2)+Math.pow(nPy-lPy,2)));
+	      if(state == 0) {
+	        if(distance >= this.lineSpaceLength) {
+	          lPx = nPx;
+	          lPy = nPy;
+	          this.moveTo([nPx, nPy]);
+	          points = this.currentPath.shape.points;
+	          state = 1;
+	        }
+	      } else if(state == 1) {
+	        if(distance <= this.lineDashLength) {
+	          points.push(nPx, nPy);
+	        } else {
+	          lPx = nPx;
+	          lPy = nPy;
+	          state = 0;
+	        }
+	      }
+	  }
+
+
+	  this.dirty = true;
+
+	  return this;
+	}
+
 	SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
 	SVGGraphics.prototype.displayObjectUpdateTransform = function() {
@@ -629,8 +849,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 
 	  // CSS attributes override node attributes
+	  var cssClasses = node.getAttribute('class');
+	  if(cssClasses) {
+	    cssClasses = cssClasses.split(' ');
+	  } else {
+	    cssClasses = [];
+	  }
 	  var style = node.getAttribute('style');
-	  var cssClasses = node.getAttribute('class').split(' ');
+	  if(style) {
+	    this._classes['style'] = style;
+	    cssClasses.push('style');
+	  }
 	  for(var c in this._classes) {
 	    if(cssClasses.indexOf(c) != -1) {
 	      style = this._classes[c];
@@ -677,7 +906,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	    strokeWidth /= this._scale;
 	  }
 
-	  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha);
+	  var strokeSegments, strokeDashLength, strokeSpaceLength, strokeDashed;
+	  if (attributes['stroke-dasharray']) {
+	    //ignore unregular dasharray
+	    strokeDashLength = parseFloat(attributes['stroke-dasharray'].split(',')[0]);
+	    strokeSpaceLength = parseFloat(attributes['stroke-dasharray'].split(',')[1]);
+	    strokeSegments = 100;
+	    strokeDashed = true;
+	  }
+
+	  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha, strokeSegments, strokeDashed, strokeDashLength, strokeSpaceLength);
 
 	  // Apply fill style
 	  var fillColor = 0x000000, fillAlpha = 0;
