@@ -67,36 +67,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	  this.drawSVG(svg);
 	}
 
-	PIXI.Graphics.prototype.lineStyle = function(lineWidth, color, alpha, segments, dashed, dashLength, spaceLength)
-	{
-	    this.lineWidth = lineWidth || 0;
-	    this.lineColor = color || 0;
-	    this.lineAlpha = (arguments.length < 3) ? 1 : alpha;
-	    this.lineSegments = segments || 20;
-	    this.lineDashed = dashed || false;
-	    this.lineDashLength = dashLength || 20;
-	    this.lineSpaceLength = spaceLength || 0;
-	 
-	    if(this.currentPath)
-	    {
-	        if(this.currentPath.shape.points.length)
-	        {
-	            // halfway through a line? start a new one!
-	            this.drawShape( new PIXI.Polygon( this.currentPath.shape.points.slice(-2) ));
-	            return this;
-	        }
-	 
-	        // otherwise its empty so lets just set the line properties
-	        this.currentPath.lineWidth = this.lineWidth;
-	        this.currentPath.lineColor = this.lineColor;
-	        this.currentPath.lineAlpha = this.lineAlpha;
-	        this.currentPath.lineSegments = this.lineSegments;
-	        this.currentPath.lineDashLength = this.lineDashLength;
-	        this.currentPath.lineSpaceLength = this.lineSpaceLength;
-	    }
-	 
-	    return this;
-	};
 
 	PIXI.Graphics.prototype.lineTo = function (x, y) {
 	    if(!this.lineDashed) {
@@ -159,8 +129,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var fromY = points[points.length-1];
 	    
 	    var j = 0;
-	    var s = 0;
-	    var d = 0;
 
 	    //0 = drawSpace; 1 = drawLine
 	    var state = 1;
@@ -906,16 +874,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	    strokeWidth /= this._scale;
 	  }
 
-	  var strokeSegments, strokeDashLength, strokeSpaceLength, strokeDashed;
+	  var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false;
 	  if (attributes['stroke-dasharray']) {
 	    //ignore unregular dasharray
 	    strokeDashLength = parseFloat(attributes['stroke-dasharray'].split(',')[0]);
 	    strokeSpaceLength = parseFloat(attributes['stroke-dasharray'].split(',')[1]);
-	    strokeSegments = 100;
 	    strokeDashed = true;
 	  }
+	  graphics.lineSegments = strokeSegments;
+	  graphics.lineDashed = strokeDashed;
+	  graphics.lineDashLength = strokeDashLength;
+	  graphics.lineSpaceLength = strokeSpaceLength;
 
-	  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha, strokeSegments, strokeDashed, strokeDashLength, strokeSpaceLength);
+	  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha);
 
 	  // Apply fill style
 	  var fillColor = 0x000000, fillAlpha = 0;
