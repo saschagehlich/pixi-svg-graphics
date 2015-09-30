@@ -3,7 +3,7 @@
 PIXI-SVG-Graphics
 ====================
 
-This module can draw SVG documents on PIXI.js's `Graphics` object, making them scaleable and crisp.
+This module can draw SVG documents on PIXI.js's `Graphics` object, making them scaleable and crisp.  The code originates from [saschagehlich/pixi-svg-graphics](https://github.com/saschagehlich/pixi-svg-graphics) but is API wise incompatible and refactored quite a bit.
 
 Usage:
 ------
