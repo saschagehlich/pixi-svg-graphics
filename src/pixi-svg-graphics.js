@@ -7,6 +7,7 @@ function SVGGraphics (svg) {
   PIXI.Graphics.call(this);
   this._scale = 1;
   this._svg = svg;
+  this._wt = new PIXI.Matrix();
   this._classes = {};
   this.drawSVG(svg);
 }
@@ -202,21 +203,25 @@ PIXI.Graphics.prototype.quadraticCurveTo = function(cpX, cpY, toX, toY) {
 SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
 SVGGraphics.prototype.updateTransform = function() {
+  PIXI.Graphics.prototype.updateTransform.call(this);
+  this._wt = this.worldTransform.clone();
   var wt = this.worldTransform;
   var scaleX = 1;
   var scaleY = 1;
 
   scaleX = Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2));
   scaleY = Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2));
-  
-  PIXI.DisplayObject.prototype.updateTransform.call(this);
+
   var tx = wt.tx;
   var ty = wt.ty;
   scaleX = scaleX !== 0 ? 1/scaleX : 0;
   scaleY = scaleY !== 0 ? 1/scaleY : 0;
   wt.scale(scaleX, scaleY);
-  wt.tx = tx;
-  wt.ty = ty;
+  wt.tx -= tx*scaleX;
+  wt.ty -= ty*scaleY;
+  // debugger;
+  this._scale = Math.min(scaleX, scaleY);
+  this.redraw();
 
   for (var i = 0; i < this.children.length; ++i) {
     this.children[i].updateTransform();
@@ -604,6 +609,7 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point = {};
           point.x = parseScientific(args[p]) + offset.x;
           point.y = parseScientific(args[p+1]) + offset.y;
+          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -613,6 +619,7 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point = {};
           point.x = parseScientific(args[p]) + offset.x;
           point.y = parseScientific(args[p+1]) + offset.y;
+          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -622,10 +629,13 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point1 = {} , point2 = {} , point3 = {};
           point1.x = parseScientific(args[p]) + offset.x;
           point1.y = parseScientific(args[p+1]) + offset.y;
+          this._wt.apply(point1, point1);
           point2.x = parseScientific(args[p+2]) + offset.x;
           point2.y = parseScientific(args[p+3]) + offset.y;
+          this._wt.apply(point2, point2);
           point3.x = parseScientific(args[p+4]) + offset.x;
           point3.y = parseScientific(args[p+5]) + offset.y;
+          this._wt.apply(point3, point3);
           points.push(point1);
           points.push(point2);
           points.push(point3);
@@ -639,6 +649,7 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point = {};
           point.y = parseScientific(args[p]) + offset.y;
           point.x = lastPoint.x;
+          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -648,6 +659,7 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point = {};
           point.x = parseScientific(args[p]) + offset.x;
           point.y = lastPoint.y;
+          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -657,8 +669,10 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point1 = {} , point2 = {};
           point1.x = parseScientific(args[p]) + offset.x;
           point1.y = parseScientific(args[p+1]) + offset.y;
+          this._wt.apply(point1, point1);
           point2.x = parseScientific(args[p+2]) + offset.x;
           point2.y = parseScientific(args[p+3]) + offset.y;
+          this._wt.apply(point2, point2);
           points.push(point1);
           points.push(point2);
           lastPoint = point2;
