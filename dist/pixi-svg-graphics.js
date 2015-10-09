@@ -76,7 +76,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var fromX = points[points.length-2];
 	        var fromY = points[points.length-1];
 	        var distance = Math.abs(Math.sqrt(Math.pow(x-fromX,2) + Math.pow(y-fromY,2)));
-	        if(distance <= this.lineDashLength) {
+	        if(distance < this.lineDashLength) {
 	            this.currentPath.shape.points.push(x, y);
 	        } else {
 	            var segments = this.lineDashLength / distance;
@@ -257,19 +257,27 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
-	SVGGraphics.prototype.displayObjectUpdateTransform = function() {
-	  PIXI.Graphics.prototype.displayObjectUpdateTransform.call(this);
+	SVGGraphics.prototype.updateTransform = function() {
 	  var wt = this.worldTransform;
+	  var scaleX = 1;
+	  var scaleY = 1;
 
-	  var scale = Math.min(Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2)),
-	                         Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2)));
+	  scaleX = Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2));
+	  scaleY = Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2));
+	  
+	  PIXI.DisplayObject.prototype.updateTransform.call(this);
+	  var tx = wt.tx;
+	  var ty = wt.ty;
+	  scaleX = scaleX !== 0 ? 1/scaleX : 0;
+	  scaleY = scaleY !== 0 ? 1/scaleY : 0;
+	  wt.scale(scaleX, scaleY);
+	  wt.tx = tx;
+	  wt.ty = ty;
 
-	  if(this._scale != scale) {
-	    this._scale = scale;
-	    this.redraw();
+	  for (var i = 0; i < this.children.length; ++i) {
+	    this.children[i].updateTransform();
 	  }
-	};
-
+	}
 
 	SVGGraphics.prototype.redraw = function () {
 	  this.removeChildren();
@@ -875,7 +883,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 
 	  var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false;
-	  if (attributes['stroke-dasharray']) {
+	  if (attributes['stroke-dasharray'] && attributes['stroke-dasharray'] != 'none') {
 	    //ignore unregular dasharray
 	    strokeDashLength = parseFloat(attributes['stroke-dasharray'].split(',')[0]);
 	    strokeSpaceLength = parseFloat(attributes['stroke-dasharray'].split(',')[1]);
@@ -913,6 +921,40 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	    this.addChild(this.drawNode(children[i]));
 	  }
+	}
+
+	SVGGraphics.prototype.clone = function () {
+	  var clone = new SVGGraphics(this._svg);
+	  clone.renderable    = this.renderable;
+	  clone.fillAlpha     = this.fillAlpha;
+	  clone.lineWidth     = this.lineWidth;
+	  clone.lineColor     = this.lineColor;
+	  clone.tint          = this.tint;
+	  clone.blendMode     = this.blendMode;
+	  clone.isMask        = this.isMask;
+	  clone.boundsPadding = this.boundsPadding;
+	  clone.dirty         = true;
+	  clone.glDirty       = true;
+	  clone.cachedSpriteDirty = this.cachedSpriteDirty;
+	  clone.scale = new PIXI.Point(this.scale.x, this.scale.y);
+	  clone._scale = this._scale;
+	  clone._classes = this._classes;
+	  clone.x = this.x;
+	  clone.y = this.y;
+	  clone.children = [];
+	  // copy graphics data
+	  for (var i = 0; i < this.graphicsData.length; ++i)
+	  {
+	      clone.graphicsData.push(this.graphicsData[i].clone());
+	  }
+	  for(var i=0;i<this.children.length;i++){
+	      var child = this.children[i];
+	      var childClone = child.clone();
+	      clone.addChild(childClone);
+	  }
+	  clone.currentPath = clone.graphicsData[clone.graphicsData.length - 1];
+	  clone.updateLocalBounds();
+	  return clone;
 	}
 
 	var parseScientific = function(numberString) {
