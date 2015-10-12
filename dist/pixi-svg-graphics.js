@@ -276,16 +276,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  scaleX = scaleX !== 0 ? 1/scaleX : 0;
 	  scaleY = scaleY !== 0 ? 1/scaleY : 0;
 
-
 	  this._scale = Math.max(scaleX, scaleY);
 	  this._scaleX = scaleX;
 	  this._scaleY = scaleY;
 	  for(var i = 0; i < this.graphicsData.length; i++) {
-	    var shape = this.graphicsData[i].shape;
-	    if(shape.points) {
-	      for(var p = 0; p < shape.points.length; p+=2) {
-	      }
-	    }
 	    var gd = this.graphicsData[i];
 	    if(!gd._lineWidth) {
 	      gd._lineWidth = gd.lineWidth;
