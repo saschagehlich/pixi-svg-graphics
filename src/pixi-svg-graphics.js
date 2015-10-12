@@ -10,6 +10,8 @@ function SVGGraphics (svg) {
   this._wt = new PIXI.Matrix();
   this._classes = {};
   this._trans = {'x': 0, 'y': 0};
+  this._lineWidth = 0;
+  this._nonScaling = false;
   this.drawSVG(svg);
 }
 
@@ -203,16 +205,14 @@ PIXI.Graphics.prototype.quadraticCurveTo2 = function(cpX, cpY, toX, toY) {
 
 SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
-SVGGraphics.prototype.updateTransform1 = function() {
-  PIXI.Graphics.prototype.updateTransform.call(this);
-}
-
 SVGGraphics.prototype.updateTransform = function() {
   PIXI.Graphics.prototype.updateTransform.call(this);
   this._wt = this.worldTransform.clone();
   var wt = this.worldTransform;
   var scaleX = 1;
   var scaleY = 1;
+  var tx = wt.tx;
+  var ty = wt.ty;
 
   scaleX = Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2));
   scaleY = Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2));
@@ -220,32 +220,29 @@ SVGGraphics.prototype.updateTransform = function() {
   scaleX = scaleX !== 0 ? 1/scaleX : 0;
   scaleY = scaleY !== 0 ? 1/scaleY : 0;
 
+
   this._scale = Math.max(scaleX, scaleY);
   this._scaleX = scaleX;
   this._scaleY = scaleY;
-  for(var i = 0; i < this.children.length; i++) {
-    this.redraw(this.children[i]);
+  for(var i = 0; i < this.graphicsData.length; i++) {
+    var shape = this.graphicsData[i].shape;
+    if(shape.points) {
+      for(var p = 0; p < shape.points.length; p+=2) {
+      }
+    }
+    var gd = this.graphicsData[i];
+    if(!gd._lineWidth) {
+      gd._lineWidth = gd.lineWidth;
+    }
+    if(this._nonScaling) {
+      gd.lineWidth = gd._lineWidth * this._scale;
+    }
+    this.dirty = true;
+    this.clearDirty = true;
   }
 
 }
 
-SVGGraphics.prototype.redraw = function (child) {
-  child.updateTransform();
-  for(var i = 0; i < child.children.length; i++) {
-    this.redraw(child.children[i]);
-  }
-  for(var i = 0; i < child.graphicsData.length; i++) {
-    var shape = child.graphicsData[i].shape;
-    if(shape.points) {
-      for(var p = 0; p < shape.points.length; p+=2) {
-        shape.points[p] /= this._scaleX || 1;
-        shape.points[p+1] /= this._scaleY || 1;
-        shape.lineWidth /= this._scale || 1;
-      }
-      child.graphicsData[i].lineWidth /= this._scale || 1;
-    }
-  }
-};
 
 /**
  * Draws the given node
@@ -552,6 +549,9 @@ SVGGraphics.prototype.drawPathData = function (data) {
         default:
           throw new Error('Could not handle path command: ' + command + ' ' + args.join(','));
       }
+      if(this.graphicsData[this.graphicsData-1]) {
+        this.graphicsData[this.graphicsData-1]._lineWidth = this._lineWidth;
+      }
     }
   }
 }
@@ -812,13 +812,12 @@ SVGGraphics.prototype.applySvgAttributes = function(attributes) {
   }
 
   if (attributes['stroke-width']) {
-    strokeWidth = parseInt(attributes['stroke-width'], 10);
+    this._lineWidth = strokeWidth = parseInt(attributes['stroke-width'], 10);
   }
 
   var vectorEffect = attributes['vector-effect'];
   if (vectorEffect == 'non-scaling-stroke') {
-    this.nonScalingStroke = true;
-    strokeWidth /= this._scale;
+    this._nonScaling = true;
   }
 
   var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false;
@@ -862,39 +861,6 @@ SVGGraphics.prototype.drawSVG = function (svg) {
   }
 }
 
-SVGGraphics.prototype.clone = function () {
-  var clone = new SVGGraphics(this._svg);
-  clone.renderable    = this.renderable;
-  clone.fillAlpha     = this.fillAlpha;
-  clone.lineWidth     = this.lineWidth;
-  clone.lineColor     = this.lineColor;
-  clone.tint          = this.tint;
-  clone.blendMode     = this.blendMode;
-  clone.isMask        = this.isMask;
-  clone.boundsPadding = this.boundsPadding;
-  clone.dirty         = true;
-  clone.glDirty       = true;
-  clone.cachedSpriteDirty = this.cachedSpriteDirty;
-  clone.scale = new PIXI.Point(this.scale.x, this.scale.y);
-  clone._scale = this._scale;
-  clone._classes = this._classes;
-  clone.x = this.x;
-  clone.y = this.y;
-  clone.children = [];
-  // copy graphics data
-  for (var i = 0; i < this.graphicsData.length; ++i)
-  {
-      clone.graphicsData.push(this.graphicsData[i].clone());
-  }
-  for(var i=0;i<this.children.length;i++){
-      var child = this.children[i];
-      var childClone = child.clone();
-      clone.addChild(childClone);
-  }
-  clone.currentPath = clone.graphicsData[clone.graphicsData.length - 1];
-  clone.updateLocalBounds();
-  return clone;
-}
 
 var parseScientific = function(numberString) {
   var info = /([\d\.]+)e-(\d+)/i.exec(numberString);
