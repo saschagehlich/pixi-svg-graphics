@@ -9,11 +9,12 @@ function SVGGraphics (svg) {
   this._svg = svg;
   this._wt = new PIXI.Matrix();
   this._classes = {};
+  this._trans = {'x': 0, 'y': 0};
   this.drawSVG(svg);
 }
 
 
-PIXI.Graphics.prototype.lineTo = function (x, y) {
+PIXI.Graphics.prototype.lineTo2 = function (x, y) {
     if(!this.lineDashed) {
         this.currentPath.shape.points.push(x, y);
     } else {
@@ -52,7 +53,7 @@ PIXI.Graphics.prototype.lineTo = function (x, y) {
     return this;
 }
 
-PIXI.Graphics.prototype.bezierCurveTo = function(cpX, cpY, cpX2, cpY2, toX, toY) {
+PIXI.Graphics.prototype.bezierCurveTo2 = function(cpX, cpY, cpX2, cpY2, toX, toY) {
     if( this.currentPath )
     {
         if(this.currentPath.shape.points.length === 0)this.currentPath.shape.points = [0,0];
@@ -130,7 +131,7 @@ PIXI.Graphics.prototype.bezierCurveTo = function(cpX, cpY, cpX2, cpY2, toX, toY)
     return this;
 }
 
-PIXI.Graphics.prototype.quadraticCurveTo = function(cpX, cpY, toX, toY) {
+PIXI.Graphics.prototype.quadraticCurveTo2 = function(cpX, cpY, toX, toY) {
   if( this.currentPath )
   {
       if(this.currentPath.shape.points.length === 0)this.currentPath.shape.points = [0,0];
@@ -202,6 +203,10 @@ PIXI.Graphics.prototype.quadraticCurveTo = function(cpX, cpY, toX, toY) {
 
 SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
+SVGGraphics.prototype.updateTransform1 = function() {
+  PIXI.Graphics.prototype.updateTransform.call(this);
+}
+
 SVGGraphics.prototype.updateTransform = function() {
   PIXI.Graphics.prototype.updateTransform.call(this);
   this._wt = this.worldTransform.clone();
@@ -212,25 +217,34 @@ SVGGraphics.prototype.updateTransform = function() {
   scaleX = Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2));
   scaleY = Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2));
 
-  var tx = wt.tx;
-  var ty = wt.ty;
   scaleX = scaleX !== 0 ? 1/scaleX : 0;
   scaleY = scaleY !== 0 ? 1/scaleY : 0;
-  wt.scale(scaleX, scaleY);
-  wt.tx -= tx*scaleX;
-  wt.ty -= ty*scaleY;
-  // debugger;
-  this._scale = Math.min(scaleX, scaleY);
-  this.redraw();
 
-  for (var i = 0; i < this.children.length; ++i) {
-    this.children[i].updateTransform();
+  this._scale = Math.max(scaleX, scaleY);
+  this._scaleX = scaleX;
+  this._scaleY = scaleY;
+  for(var i = 0; i < this.children.length; i++) {
+    this.redraw(this.children[i]);
   }
+
 }
 
-SVGGraphics.prototype.redraw = function () {
-  this.removeChildren();
-  this.drawSVG(this._svg);
+SVGGraphics.prototype.redraw = function (child) {
+  child.updateTransform();
+  for(var i = 0; i < child.children.length; i++) {
+    this.redraw(child.children[i]);
+  }
+  for(var i = 0; i < child.graphicsData.length; i++) {
+    var shape = child.graphicsData[i].shape;
+    if(shape.points) {
+      for(var p = 0; p < shape.points.length; p+=2) {
+        shape.points[p] /= this._scaleX || 1;
+        shape.points[p+1] /= this._scaleY || 1;
+        shape.lineWidth /= this._scale || 1;
+      }
+      child.graphicsData[i].lineWidth /= this._scale || 1;
+    }
+  }
 };
 
 /**
@@ -238,16 +252,19 @@ SVGGraphics.prototype.redraw = function () {
  * @param  {SVGElement} node
  */
 SVGGraphics.prototype.drawNode = function (node) {
-  var graphics = new PIXI.Graphics();
   var tagName = node.tagName;
   var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1);
-  this.applyTransformation(node, graphics);
+  this.applyTransformation(node);
   if (!this['draw' + capitalizedTagName + 'Node']) {
     console.warn('No drawing behavior for ' + capitalizedTagName + ' node');
   } else {
-    graphics.addChild(this['draw' + capitalizedTagName + 'Node'](node));
+    if(capitalizedTagName == 'Svg') {
+      var width = node.getAttribute('width');
+      var height = node.getAttribute('height');
+      this.beginFill(0x000,0).drawRect(0, 0, parseInt(width), parseInt(height));
+    }
+    this['draw' + capitalizedTagName + 'Node'](node);
   }
-  return graphics;
 }
 
 /**
@@ -255,11 +272,6 @@ SVGGraphics.prototype.drawNode = function (node) {
  * @param  {SVGSVGElement} node
  */
 SVGGraphics.prototype.drawSvgNode = function (node) {
-  var graphics = new PIXI.Graphics();
-  var width = node.getAttribute('width');
-  var height = node.getAttribute('height');
-  this.width = parseFloat(width);
-  this.height = parseFloat(height);
   var children = node.children;
   for(var i = 0; i < children.length; i++) {
     var child = children[i];
@@ -275,7 +287,7 @@ SVGGraphics.prototype.drawSvgNode = function (node) {
       }
     }
   }
-  return graphics.addChild(this.drawGNode(node));
+  this.drawGNode(node);
 }
 
 /**
@@ -285,15 +297,13 @@ SVGGraphics.prototype.drawSvgNode = function (node) {
 SVGGraphics.prototype.drawGNode = function (node) {
   var children = node.children || node.childNodes;
   var child;
-  var graphics = new PIXI.Graphics();
   for (var i = 0, len = children.length; i < len; i++) {
     child = children[i];
     if (child.nodeType !== 1) {
       continue;
     }
-    graphics.addChild(this.drawNode(child));
+    this.drawNode(child);
   }
-  return graphics
 }
 
 /**
@@ -301,7 +311,6 @@ SVGGraphics.prototype.drawGNode = function (node) {
  * @param {SVGTextElement} node
  */
 SVGGraphics.prototype.drawTextNode = function (node) {
-  var graphics = new PIXI.Graphics();
   var styles = node.getAttribute('style').split(";");
   var styles_obj = {};
   for(var i = 0; i < styles.length; i++) {
@@ -317,7 +326,7 @@ SVGGraphics.prototype.drawTextNode = function (node) {
   var pixi_text = new PIXI.Text(text, {font: font, fill: fill});
   pixi_text.x = node.getAttribute('x');
   pixi_text.y = node.getAttribute('y');
-  return graphics.addChild(pixi_text);
+  this.addChild(pixi_text);
 }
 
 /**
@@ -325,18 +334,15 @@ SVGGraphics.prototype.drawTextNode = function (node) {
  * @param  {SVGLineElement} node
  */
 SVGGraphics.prototype.drawLineNode = function (node) {
-  var graphics = new PIXI.Graphics();
-  this.parseSvgAttributes(node, graphics);
+  this.parseSvgAttributes(node);
 
   var x1 = parseScientific(node.getAttribute('x1'));
   var y1 = parseScientific(node.getAttribute('y1'));
   var x2 = parseScientific(node.getAttribute('x2'));
   var y2 = parseScientific(node.getAttribute('y2'));
 
-  graphics.moveTo(x1, y1);
-  graphics.lineTo(x2, y2);
-
-  return graphics;
+  this.moveTo(x1, y1);
+  this.lineTo2(x2, y2);
 }
 
 /**
@@ -344,8 +350,7 @@ SVGGraphics.prototype.drawLineNode = function (node) {
  * @param  {SVGPolylineElement} node
  */
 SVGGraphics.prototype.drawPolylineNode = function (node) {
-  var graphics = new PIXI.Graphics();
-  this.parseSvgAttributes(node, graphics);
+  this.parseSvgAttributes(node);
 
   var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)';
   var points = node.getAttribute('points').match(new RegExp(reg, 'g'));
@@ -359,12 +364,11 @@ SVGGraphics.prototype.drawPolylineNode = function (node) {
     coords[2] = parseScientific(coords[2]);
 
     if (i === 0) {
-      graphics.moveTo(coords[1], coords[2]);
+      this.moveTo(coords[1], coords[2]);
     } else {
-      graphics.lineTo(coords[1], coords[2]);
+      this.lineTo2(coords[1], coords[2]);
     }
   }
-  return graphics;
 }
 
 /**
@@ -372,15 +376,13 @@ SVGGraphics.prototype.drawPolylineNode = function (node) {
  * @param  {SVGCircleElement} node
  */
 SVGGraphics.prototype.drawCircleNode = function (node) {
-  var graphics = new PIXI.Graphics();
-  this.parseSvgAttributes(node, graphics);
+  this.parseSvgAttributes(node);
 
   var cx = parseScientific(node.getAttribute('cx'));
   var cy = parseScientific(node.getAttribute('cy'));
   var r = parseScientific(node.getAttribute('r'));
 
-  graphics.drawCircle(cx, cy, r);
-  return graphics;
+  this.drawCircle(cx, cy, r);
 }
 
 /**
@@ -388,16 +390,14 @@ SVGGraphics.prototype.drawCircleNode = function (node) {
  * @param  {SVGCircleElement} node
  */
 SVGGraphics.prototype.drawEllipseNode = function (node) {
-  var graphics = new PIXI.Graphics();
-  this.parseSvgAttributes(node, graphics);
+  this.parseSvgAttributes(node);
 
   var cx = parseScientific(node.getAttribute('cx'));
   var cy = parseScientific(node.getAttribute('cy'));
   var rx = parseScientific(node.getAttribute('rx'));
   var ry = parseScientific(node.getAttribute('ry'));
 
-  graphics.drawEllipse(cx, cy, rx, ry);
-  return graphics;
+  this.drawEllipse(cx, cy, rx, ry);
 }
 
 /**
@@ -405,16 +405,14 @@ SVGGraphics.prototype.drawEllipseNode = function (node) {
  * @param  {SVGRectElement} node
  */
 SVGGraphics.prototype.drawRectNode = function (node) {
-  var graphics = new PIXI.Graphics();
-  this.parseSvgAttributes(node, graphics);
+  this.parseSvgAttributes(node);
 
   var x = parseScientific(node.getAttribute('x'));
   var y = parseScientific(node.getAttribute('y'));
   var width = parseScientific(node.getAttribute('width'));
   var height = parseScientific(node.getAttribute('height'));
 
-  graphics.drawRect(x, y, width, height);
-  return graphics;
+  this.drawRect(x, y, width, height);
 }
 
 /**
@@ -422,7 +420,6 @@ SVGGraphics.prototype.drawRectNode = function (node) {
  * @param  {SVGPolygonElement} node
  */
 SVGGraphics.prototype.drawPolygonNode = function (node) {
-  var graphics = new PIXI.Graphics();
   var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)';
   var points = node.getAttribute('points').match(new RegExp(reg, 'g'));
 
@@ -441,9 +438,8 @@ SVGGraphics.prototype.drawPolygonNode = function (node) {
     ));
   }
 
-  this.parseSvgAttributes(node, graphics);
-  graphics.drawPolygon(path);
-  return graphics;
+  this.parseSvgAttributes(node);
+  this.drawPolygon(path);
 }
 
 /**
@@ -451,17 +447,16 @@ SVGGraphics.prototype.drawPolygonNode = function (node) {
  * @param  {SVGPathElement} node
  */
 SVGGraphics.prototype.drawPathNode = function (node) {
-  var graphics = new PIXI.Graphics();
-  this.parseSvgAttributes(node, graphics);
+  this.parseSvgAttributes(node);
   var d = node.getAttribute('d').trim();
   var data = this.tokenizePathData(d);
-  return this.drawPathData(data,graphics);
+  this.drawPathData(data);
 }
 
 /**
  * Draw the given tokenized path data object
  */
-SVGGraphics.prototype.drawPathData = function (data, graphics) {
+SVGGraphics.prototype.drawPathData = function (data) {
   var instructions = data.instructions;
   var lastControl = {x:0, y:0};
   var lastCoord = {x:0, y:0};
@@ -477,8 +472,8 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
       switch (command.toLowerCase()) {
         // moveto command
         case 'm':
-          var x = points[z].x;
-          var y = points[z].y;
+          var x = points[z].x + this._trans.x;
+          var y = points[z].y + this._trans.y;
 
           //check if we need to create "holes"
           var lastDirection;
@@ -491,71 +486,67 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
           }
 
           if (z == 0 && fill) {
-            graphics.moveTo(x, y);
-            graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = false;
+            this.moveTo(x, y);
+            this.graphicsData[this.graphicsData.length-1].shape.closed = false;
           } else {
-            graphics.lineTo(x, y);
+            this.lineTo2(x, y);
           }
-          lastCoord = points[z];
           z += 1;
           break;
         // lineto command
         case 'l':
-          var x = points[z].x;
-          var y = points[z].y;
+          var x = points[z].x + this._trans.x;
+          var y = points[z].y + this._trans.y;
 
-          graphics.lineTo(x, y);
-          lastCoord = points[z];
+          this.lineTo2(x, y);
           z += 1;
           break;
         // curveto command
         case 'c':
-          graphics.bezierCurveTo(
-            points[z].x,
-            points[z].y,
-            points[z + 1].x,
-            points[z + 1].y,
-            points[z + 2].x,
-            points[z + 2].y
+          this.bezierCurveTo2(
+            points[z].x + this._trans.x,
+            points[z].y + this._trans.y,
+            points[z + 1].x + this._trans.x,
+            points[z + 1].y + this._trans.y,
+            points[z + 2].x + this._trans.x,
+            points[z + 2].y + this._trans.y
           );
           lastCoord = points[z + 2];
           z += 3;
           break;
         // vertial lineto command
         case 'v':
-          var x = points[z].x;
-          var y = points[z].y;
+          var x = points[z].x + this._trans.x;
+          var y = points[z].y + this._trans.y;
 
-          graphics.lineTo(x, y);
+          this.lineTo2(x, y);
           z += 1;
-          lastCoord.y = y;
           break;
         // horizontal lineto command
         case 'h':
-          var x = points[z].x;
-          var y = points[z].y;
+          var x = points[z].x + this._trans.x;
+          var y = points[z].y + this._trans.y;
 
-          graphics.lineTo(x, y);
+          this.lineTo2(x, y);
           lastCoord.x = x;
           z += 1;
           break;
         // quadratic curve command
         case 's':
 
-          graphics.quadraticCurveTo(
-            points[z].x,
-            points[z].y,
-            points[z + 1].x,
-            points[z + 1].y
+          this.quadraticCurveTo2(
+            points[z].x + this._trans.x,
+            points[z].y + this._trans.y,
+            points[z + 1].x + this._trans.x,
+            points[z + 1].y + this._trans.y
           );
-          lastCoord = points[z + 1];
           z += 2;
           break;
         // closepath command
         case 'z':
           z += 1;
           subpathIndex += 1;
-          graphics.graphicsData[graphics.graphicsData.length-1].shape.closed = true;
+          this.graphicsData[this.graphicsData.length-1].shape.closed = true;
           // Z command is handled by M
           break;
         default:
@@ -563,7 +554,6 @@ SVGGraphics.prototype.drawPathData = function (data, graphics) {
       }
     }
   }
-  return graphics;
 }
 
 SVGGraphics.prototype.tokenizePathData = function(pathData) {
@@ -609,7 +599,6 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point = {};
           point.x = parseScientific(args[p]) + offset.x;
           point.y = parseScientific(args[p+1]) + offset.y;
-          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -619,7 +608,6 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point = {};
           point.x = parseScientific(args[p]) + offset.x;
           point.y = parseScientific(args[p+1]) + offset.y;
-          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -629,13 +617,10 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point1 = {} , point2 = {} , point3 = {};
           point1.x = parseScientific(args[p]) + offset.x;
           point1.y = parseScientific(args[p+1]) + offset.y;
-          this._wt.apply(point1, point1);
           point2.x = parseScientific(args[p+2]) + offset.x;
           point2.y = parseScientific(args[p+3]) + offset.y;
-          this._wt.apply(point2, point2);
           point3.x = parseScientific(args[p+4]) + offset.x;
           point3.y = parseScientific(args[p+5]) + offset.y;
-          this._wt.apply(point3, point3);
           points.push(point1);
           points.push(point2);
           points.push(point3);
@@ -649,7 +634,6 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point = {};
           point.y = parseScientific(args[p]) + offset.y;
           point.x = lastPoint.x;
-          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -658,8 +642,6 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
         case 'h':
           var point = {};
           point.x = parseScientific(args[p]) + offset.x;
-          point.y = lastPoint.y;
-          this._wt.apply(point, point);
           points.push(point);
           subpath.points.push(point);
           lastPoint = point;
@@ -669,10 +651,8 @@ SVGGraphics.prototype.tokenizePathData = function(pathData) {
           var point1 = {} , point2 = {};
           point1.x = parseScientific(args[p]) + offset.x;
           point1.y = parseScientific(args[p+1]) + offset.y;
-          this._wt.apply(point1, point1);
           point2.x = parseScientific(args[p+2]) + offset.x;
           point2.y = parseScientific(args[p+3]) + offset.y;
-          this._wt.apply(point2, point2);
           points.push(point1);
           points.push(point2);
           lastPoint = point2;
@@ -724,7 +704,7 @@ SVGGraphics.prototype.getPathDirection = function(path) {
   }
 }
 
-SVGGraphics.prototype.applyTransformation = function (node, graphics) {
+SVGGraphics.prototype.applyTransformation = function (node) {
   if (node.getAttribute('transform')) {
     var transformMatrix = new PIXI.Matrix();
     var transformAttr = node.getAttribute('transform').trim().split('(');
@@ -739,29 +719,29 @@ SVGGraphics.prototype.applyTransformation = function (node, graphics) {
       transformMatrix.ty  = parseScientific(transformValues[5]);
       var point = {x: 0, y: 0};
       var trans_point = transformMatrix.apply(point);
-      graphics.x += trans_point.x;
-      graphics.y += trans_point.y;
-      graphics.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b);
-      graphics.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d);
+      this._trans.x += trans_point.x;
+      this._trans.y += trans_point.y;
+      this.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b);
+      this.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d);
 
-      graphics.rotation = -Math.acos(transformMatrix.a/graphics.scale.x);
+      this.rotation = -Math.acos(transformMatrix.a/this.scale.x);
     } else if(transformCommand == 'translate') {
-      graphics.x += parseScientific(transformValues[0]);
-      graphics.y += parseScientific(transformValues[1]);
+      this._trans.x += parseScientific(transformValues[0]);
+      this._trans.y += parseScientific(transformValues[1]);
     } else if(transformCommand == 'scale') {
-      graphics.scale.x = parseScientific(transformValues[0]);
-      graphics.scale.y = parseScientific(transformValues[1]);
+      this.scale.x = parseScientific(transformValues[0]);
+      this.scale.y = parseScientific(transformValues[1]);
     } else if(transformCommand == 'rotate') {
       if(transformValues.length > 1) {
-        graphics.x += parseScientific(transformValues[1]);
-        graphics.y += parseScientific(transformValues[2]);
+        this._trans.x += parseScientific(transformValues[1]);
+        this._trans.y += parseScientific(transformValues[2]);
       }
 
-      graphics.rotation = parseScientific(transformValues[0]);
+      this.rotation = parseScientific(transformValues[0]);
 
       if(transformValues.length > 1) {
-        graphics.x -= parseScientific(transformValues[1]);
-        graphics.y -= parseScientific(transformValues[2]);
+        this._trans.x -= parseScientific(transformValues[1]);
+        this._trans.y -= parseScientific(transformValues[2]);
       }
     }
   }
@@ -771,7 +751,7 @@ SVGGraphics.prototype.applyTransformation = function (node, graphics) {
  * Applies the given node's attributes to our PIXI.Graphics object
  * @param  {SVGElement} node
  */
-SVGGraphics.prototype.parseSvgAttributes = function (node, graphics) {
+SVGGraphics.prototype.parseSvgAttributes = function (node) {
   var attributes = {};
 
   // Get node attributes
@@ -815,10 +795,10 @@ SVGGraphics.prototype.parseSvgAttributes = function (node, graphics) {
       }
     }
   }
-  this.applySvgAttributes(attributes, graphics);
+  this.applySvgAttributes(attributes);
 }
 
-SVGGraphics.prototype.applySvgAttributes = function(attributes, graphics) {
+SVGGraphics.prototype.applySvgAttributes = function(attributes) {
 
   // Apply stroke style
   var strokeColor = 0x000000, strokeWidth = 1, strokeAlpha = 0;
@@ -837,6 +817,7 @@ SVGGraphics.prototype.applySvgAttributes = function(attributes, graphics) {
 
   var vectorEffect = attributes['vector-effect'];
   if (vectorEffect == 'non-scaling-stroke') {
+    this.nonScalingStroke = true;
     strokeWidth /= this._scale;
   }
 
@@ -847,12 +828,12 @@ SVGGraphics.prototype.applySvgAttributes = function(attributes, graphics) {
     strokeSpaceLength = parseFloat(attributes['stroke-dasharray'].split(',')[1]);
     strokeDashed = true;
   }
-  graphics.lineSegments = strokeSegments;
-  graphics.lineDashed = strokeDashed;
-  graphics.lineDashLength = strokeDashLength;
-  graphics.lineSpaceLength = strokeSpaceLength;
+  this.lineSegments = strokeSegments;
+  this.lineDashed = strokeDashed;
+  this.lineDashLength = strokeDashLength;
+  this.lineSpaceLength = strokeSpaceLength;
 
-  graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha);
+  this.lineStyle(strokeWidth, strokeColor, strokeAlpha);
 
   // Apply fill style
   var fillColor = 0x000000, fillAlpha = 0;
@@ -862,7 +843,7 @@ SVGGraphics.prototype.applySvgAttributes = function(attributes, graphics) {
     fillColor = intColor;
     fillAlpha = color[3];
 
-    graphics.beginFill(fillColor, fillAlpha);
+    this.beginFill(fillColor, fillAlpha);
   }
 }
 
@@ -877,7 +858,7 @@ SVGGraphics.prototype.drawSVG = function (svg) {
     if (children[i].nodeType !== 1) {
       continue;
     }
-    this.addChild(this.drawNode(children[i]));
+    this.drawNode(children[i]);
   }
 }
 
