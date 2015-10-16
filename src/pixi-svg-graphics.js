@@ -201,6 +201,24 @@ PIXI.Graphics.prototype.quadraticCurveTo2 = function (cpX, cpY, toX, toY) {
 
 SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
+SVGGraphics.prototype.clone = function(){
+        var clone = new SVGGraphics(this._svg);
+
+        clone.children = [];
+        clone.scale = new PIXI.Point(this.scale.x, this.scale.y);
+        clone.rotation = this.rotation;
+        clone.x = this.x;
+        clone.y = this.y;
+
+        for(var i=0;i<this.children.length;i++){
+            var child = this.children[i];
+            var childClone = child.clone();
+            clone.addChild(childClone);
+        }
+
+        return clone
+};
+
 SVGGraphics.prototype.updateTransform = function () {
     PIXI.DisplayObject.prototype.updateTransform.call(this);
 
