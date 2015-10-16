@@ -12,7 +12,9 @@ function SVGGraphics (svg) {
   this._trans = {'x': 0, 'y': 0};
   this._lineWidth = 0;
   this._nonScaling = false;
-  this.drawSVG(svg);
+    if(svg){
+        this.drawSVG(svg);
+    }
 }
 
 
@@ -50,7 +52,7 @@ PIXI.Graphics.prototype.lineTo2 = function (x, y) {
             }
         }
     }
-    this.dirty = true;
+    this.dirtyScale = true;
 
     return this;
 }
@@ -128,7 +130,7 @@ PIXI.Graphics.prototype.bezierCurveTo2 = function(cpX, cpY, cpX2, cpY2, toX, toY
         }
     }
 
-    this.dirty = true;
+    this.dirtyScale = true;
 
     return this;
 }
@@ -198,7 +200,7 @@ PIXI.Graphics.prototype.quadraticCurveTo2 = function(cpX, cpY, toX, toY) {
   }
 
 
-  this.dirty = true;
+  this.dirtyScale = true;
 
   return this;
 }
@@ -206,35 +208,58 @@ PIXI.Graphics.prototype.quadraticCurveTo2 = function(cpX, cpY, toX, toY) {
 SVGGraphics.prototype = Object.create(PIXI.Graphics.prototype);
 
 SVGGraphics.prototype.updateTransform = function() {
-  PIXI.Graphics.prototype.updateTransform.call(this);
-  this._wt = this.worldTransform.clone();
-  var wt = this.worldTransform;
-  var scaleX = 1;
-  var scaleY = 1;
-  var tx = wt.tx;
-  var ty = wt.ty;
+    PIXI.DisplayObject.prototype.updateTransform.call(this);
 
-  scaleX = Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2));
-  scaleY = Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2));
+    var wt = this.worldTransform;
+    var scaleX = 1;
+    var scaleY = 1;
+    var tx = wt.tx;
+    var ty = wt.ty;
 
-  scaleX = scaleX !== 0 ? 1/scaleX : 0;
-  scaleY = scaleY !== 0 ? 1/scaleY : 0;
+    scaleX = Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2));
+    scaleY = Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2));
 
-  this._scale = Math.max(scaleX, scaleY);
-  this._scaleX = scaleX;
-  this._scaleY = scaleY;
-  for(var i = 0; i < this.graphicsData.length; i++) {
-    var gd = this.graphicsData[i];
-    if(!gd._lineWidth) {
-      gd._lineWidth = gd.lineWidth;
+    wt.scale( scaleX !== 0 ? 1/scaleX : 0, scaleY !== 0 ? 1/scaleY : 0);
+    wt.tx = tx;
+    wt.ty = ty;
+
+
+    var scaleChanged = this._lastScaleX != scaleX || this._lastScaleY != scaleY;
+    if(this.dirtyScale || scaleChanged) {
+        this.graphicsDataOrg = this.graphicsDataOrg || [];
+        for(var i = this.graphicsDataOrg.length; i < this.graphicsData.length; i++) {
+            this.graphicsDataOrg.push(this.graphicsData[i].clone());
+        }
+
+
+        for(var i = 0; i < this.graphicsDataOrg.length; i++) {
+            var pointsOrg = this.graphicsDataOrg[i].shape.points;
+            var points = this.graphicsData[i].shape.points;
+            if(points) {
+                for(var p = 0; p < points.length; p+=2) {
+                    points[p] = pointsOrg[p] * scaleX;
+                    points[p+1] = pointsOrg[p+1] * scaleY;
+                }
+            }
+
+            /*
+
+             var gd = this.graphicsData[i];
+             if(!gd._lineWidth) {
+             gd._lineWidth = gd.lineWidth;
+             }
+             if(this._nonScaling) {
+             gd.lineWidth = gd._lineWidth * this._scale;
+             }
+
+
+             */
+
+        }
+        this.dirtyScale = false;
     }
-    if(this._nonScaling) {
-      gd.lineWidth = gd._lineWidth * this._scale;
-    }
-    this.dirty = true;
-    this.clearDirty = true;
-  }
-
+    this._lastScaleX = scaleX;
+    this._lastScaleY = scaleY;
 }
 
 
