@@ -112,7 +112,7 @@ PIXI.Graphics.prototype.bezierCurveTo2 = function (cpX, cpY, cpX2, cpY2, toX, to
             if (distance >= this.lineSpaceLength) {
                 lPx = nPx;
                 lPy = nPy;
-                this.moveTo([nPx, nPy]);
+                this.moveTo(nPx, nPy);
                 points = this.currentPath.shape.points;
                 state = 1;
             }
@@ -178,7 +178,7 @@ PIXI.Graphics.prototype.quadraticCurveTo2 = function (cpX, cpY, toX, toY) {
             if (distance >= this.lineSpaceLength) {
                 lPx = nPx;
                 lPy = nPy;
-                this.moveTo([nPx, nPy]);
+                this.moveTo(nPx, nPy);
                 points = this.currentPath.shape.points;
                 state = 1;
             }
@@ -248,9 +248,9 @@ SVGGraphics.prototype.updateTransform = function () {
             var pointsOrg = this.graphicsDataOrg[i].shape.points;
             var points = this.graphicsData[i].shape.points;
             if (points) {
-                for (var p = 0; p < points.length; p += 2) {
-                    points[p] = pointsOrg[p] * scaleX;
-                    points[p + 1] = pointsOrg[p + 1] * scaleY;
+                for (var p = 0; p < points.length/2; p++) {
+                    points[p * 2] = pointsOrg[p * 2] * scaleX;
+                    points[p * 2 + 1] = pointsOrg[p * 2 + 1] * scaleY;
                 }
             }
 
