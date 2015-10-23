@@ -129,6 +129,7 @@ PIXI.Graphics.prototype.bezierCurveTo2 = function (cpX, cpY, cpX2, cpY2, toX, to
         }
     }
 
+    this.currentPath.shape.closed = false;
     this.dirtyScale = true;
 
     return this;
