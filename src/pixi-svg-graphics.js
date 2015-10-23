@@ -42,7 +42,8 @@ PIXI.Graphics.prototype.lineTo2 = function (x, y) {
                 if (dashOn) {
                     this.currentPath.shape.points.push(pX, pY);
                 } else {
-                    this.moveTo([pX, pY]);
+                    this.currentPath.shape.closed = false;
+                    this.moveTo(pX, pY);
                 }
             }
 
@@ -112,6 +113,7 @@ PIXI.Graphics.prototype.bezierCurveTo2 = function (cpX, cpY, cpX2, cpY2, toX, to
             if (distance >= this.lineSpaceLength) {
                 lPx = nPx;
                 lPy = nPy;
+                this.currentPath.shape.closed = false;
                 this.moveTo(nPx, nPy);
                 points = this.currentPath.shape.points;
                 state = 1;
@@ -178,6 +180,7 @@ PIXI.Graphics.prototype.quadraticCurveTo2 = function (cpX, cpY, toX, toY) {
             if (distance >= this.lineSpaceLength) {
                 lPx = nPx;
                 lPy = nPy;
+                this.currentPath.shape.closed = false;
                 this.moveTo(nPx, nPy);
                 points = this.currentPath.shape.points;
                 state = 1;
@@ -865,8 +868,8 @@ SVGGraphics.prototype.applySvgAttributes = function (attributes) {
     var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false;
     if (attributes['stroke-dasharray'] && attributes['stroke-dasharray'] != 'none') {
         //ignore unregular dasharray
-        strokeDashLength = parseFloat(attributes['stroke-dasharray'].split(',')[0]);
-        strokeSpaceLength = parseFloat(attributes['stroke-dasharray'].split(',')[1]);
+        strokeDashLength = parseInt(attributes['stroke-dasharray'].split(',')[0]);
+        strokeSpaceLength = parseInt(attributes['stroke-dasharray'].split(',')[1]);
         strokeDashed = true;
     }
     this.lineSegments = strokeSegments;
