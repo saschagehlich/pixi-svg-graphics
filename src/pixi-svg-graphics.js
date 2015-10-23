@@ -561,14 +561,15 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     break;
                 // quadratic curve command
                 case 's':
-
-                    this.quadraticCurveTo2(
+                    this.bezierCurveTo2(
                         points[z].x + this._trans.x,
                         points[z].y + this._trans.y,
                         points[z + 1].x + this._trans.x,
-                        points[z + 1].y + this._trans.y
+                        points[z + 1].y + this._trans.y,
+                        points[z + 2].x + this._trans.x,
+                        points[z + 2].y + this._trans.y
                     );
-                    z += 2;
+                    z += 3;
                     break;
                 // closepath command
                 case 'z':
@@ -599,6 +600,10 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         x: 0,
         y: 0
     };
+    var lastControl = {
+        x: 0,
+        y: 0
+    }
     var subpaths = [];
     var subpath = {
         points: [],
@@ -659,6 +664,7 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     subpath.points.push(point2);
                     subpath.points.push(point3);
                     lastPoint = point3;
+                    lastControl = point2;
                     p += 6;
                     break;
                 case 'v':
@@ -679,16 +685,21 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     p += 1;
                     break;
                 case 's':
-                    var point1 = {} , point2 = {};
-                    point1.x = parseScientific(args[p]) + offset.x;
-                    point1.y = parseScientific(args[p + 1]) + offset.y;
-                    point2.x = parseScientific(args[p + 2]) + offset.x;
-                    point2.y = parseScientific(args[p + 3]) + offset.y;
+                    var point1 = {} , point2 = {}, point3 = {};
+                    point1.x = 2 * lastPoint.x - lastControl.x;
+                    point1.y = 2 * lastPoint.y - lastControl.y;
+                    point2.x = parseScientific(args[p]) + offset.x;
+                    point2.y = parseScientific(args[p + 1]) + offset.y;
+                    point3.x = parseScientific(args[p + 2]) + offset.x;
+                    point3.y = parseScientific(args[p + 3]) + offset.y;
                     points.push(point1);
                     points.push(point2);
-                    lastPoint = point2;
+                    points.push(point3);
+                    lastPoint = point3;
+                    lastControl = point2;
                     subpath.points.push(point1);
                     subpath.points.push(point2);
+                    subpath.points.push(point3);
                     p += 4;
                     break;
                 case 'z':
