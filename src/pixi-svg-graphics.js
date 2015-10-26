@@ -881,15 +881,14 @@ SVGGraphics.prototype.applySvgAttributes = function (attributes) {
     this.lineStyle(strokeWidth, strokeColor, strokeAlpha);
 
     // Apply fill style
-    var fillColor = 0x000000, fillAlpha = 0;
+    var fillColor = 0x000000, fillAlpha = 1;
     if (attributes.fill) {
         color = color2color(attributes.fill, 'array');
         intColor = 256 * 256 * color[0] + 256 * color[1] + color[2];
         fillColor = intColor;
         fillAlpha = color[3];
-
-        this.beginFill(fillColor, fillAlpha);
     }
+    this.beginFill(fillColor, fillAlpha);
 }
 
 /**
