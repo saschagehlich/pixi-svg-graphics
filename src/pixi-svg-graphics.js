@@ -26,7 +26,7 @@ PIXI.Graphics.prototype.lineTo2 = function (x, y) {
         var fromX = points[points.length - 2];
         var fromY = points[points.length - 1];
         var distance = Math.abs(Math.sqrt(Math.pow(x - fromX, 2) + Math.pow(y - fromY, 2)));
-        if (distance < this.lineDashLength) {
+        if (distance <= this.lineDashLength) {
             this.currentPath.shape.points.push(x, y);
         } else {
             var segments = this.lineDashLength / distance;
@@ -34,10 +34,8 @@ PIXI.Graphics.prototype.lineTo2 = function (x, y) {
             var pX, pY;
             for (var i = segments; i <= 1; i += segments) {
                 var t = Math.max(Math.min(i, 1), 0);
-                var x = fromX + (t * (x - fromX));
-                var y = fromY + (t * (y - fromY));
-                pX = x;
-                pY = y;
+                pX = fromX + (t * (x - fromX));
+                pY = fromY + (t * (y - fromY));
                 dashOn = !dashOn;
                 if (dashOn) {
                     this.currentPath.shape.points.push(pX, pY);
@@ -490,8 +488,6 @@ SVGGraphics.prototype.drawPathNode = function (node) {
  */
 SVGGraphics.prototype.drawPathData = function (data) {
     var instructions = data.instructions;
-    var lastControl = {x: 0, y: 0};
-    var lastCoord = {x: 0, y: 0};
     var subpathIndex = 0;
 
     for (var i = 0; i < instructions.length; i++) {
@@ -543,7 +539,6 @@ SVGGraphics.prototype.drawPathData = function (data) {
                         points[z + 2].x + this._trans.x,
                         points[z + 2].y + this._trans.y
                     );
-                    lastCoord = points[z + 2];
                     z += 3;
                     break;
                 // vertial lineto command
@@ -560,7 +555,6 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     var y = points[z].y + this._trans.y;
 
                     this.lineTo2(x, y);
-                    lastCoord.x = x;
                     z += 1;
                     break;
                 // quadratic curve command
@@ -683,6 +677,7 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                 case 'h':
                     var point = {};
                     point.x = parseScientific(args[p]) + offset.x;
+                    point.y = lastPoint.y;
                     points.push(point);
                     subpath.points.push(point);
                     lastPoint = point;
