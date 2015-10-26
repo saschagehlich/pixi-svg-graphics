@@ -82,7 +82,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var fromX = points[points.length - 2];
 	        var fromY = points[points.length - 1];
 	        var distance = Math.abs(Math.sqrt(Math.pow(x - fromX, 2) + Math.pow(y - fromY, 2)));
-	        if (distance < this.lineDashLength) {
+	        if (distance <= this.lineDashLength) {
 	            this.currentPath.shape.points.push(x, y);
 	        } else {
 	            var segments = this.lineDashLength / distance;
@@ -90,15 +90,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var pX, pY;
 	            for (var i = segments; i <= 1; i += segments) {
 	                var t = Math.max(Math.min(i, 1), 0);
-	                var x = fromX + (t * (x - fromX));
-	                var y = fromY + (t * (y - fromY));
-	                pX = x;
-	                pY = y;
+	                pX = fromX + (t * (x - fromX));
+	                pY = fromY + (t * (y - fromY));
 	                dashOn = !dashOn;
 	                if (dashOn) {
 	                    this.currentPath.shape.points.push(pX, pY);
 	                } else {
-	                    this.moveTo([pX, pY]);
+	                    this.currentPath.shape.closed = false;
+	                    this.moveTo(pX, pY);
 	                }
 	            }
 
@@ -168,7 +167,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	            if (distance >= this.lineSpaceLength) {
 	                lPx = nPx;
 	                lPy = nPy;
-	                this.moveTo([nPx, nPy]);
+	                this.currentPath.shape.closed = false;
+	                this.moveTo(nPx, nPy);
 	                points = this.currentPath.shape.points;
 	                state = 1;
 	            }
@@ -183,6 +183,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	    }
 
+	    this.currentPath.shape.closed = false;
 	    this.dirtyScale = true;
 
 	    return this;
@@ -234,7 +235,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	            if (distance >= this.lineSpaceLength) {
 	                lPx = nPx;
 	                lPy = nPy;
-	                this.moveTo([nPx, nPy]);
+	                this.currentPath.shape.closed = false;
+	                this.moveTo(nPx, nPy);
 	                points = this.currentPath.shape.points;
 	                state = 1;
 	            }
@@ -304,9 +306,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var pointsOrg = this.graphicsDataOrg[i].shape.points;
 	            var points = this.graphicsData[i].shape.points;
 	            if (points) {
-	                for (var p = 0; p < points.length; p += 2) {
-	                    points[p] = pointsOrg[p] * scaleX;
-	                    points[p + 1] = pointsOrg[p + 1] * scaleY;
+	                for (var p = 0; p < points.length/2; p++) {
+	                    points[p * 2] = pointsOrg[p * 2] * scaleX;
+	                    points[p * 2 + 1] = pointsOrg[p * 2 + 1] * scaleY;
 	                }
 	            }
 
@@ -542,8 +544,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawPathData = function (data) {
 	    var instructions = data.instructions;
-	    var lastControl = {x: 0, y: 0};
-	    var lastCoord = {x: 0, y: 0};
 	    var subpathIndex = 0;
 
 	    for (var i = 0; i < instructions.length; i++) {
@@ -595,7 +595,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	                        points[z + 2].x + this._trans.x,
 	                        points[z + 2].y + this._trans.y
 	                    );
-	                    lastCoord = points[z + 2];
 	                    z += 3;
 	                    break;
 	                // vertial lineto command
@@ -612,19 +611,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    var y = points[z].y + this._trans.y;
 
 	                    this.lineTo2(x, y);
-	                    lastCoord.x = x;
 	                    z += 1;
 	                    break;
 	                // quadratic curve command
 	                case 's':
-
-	                    this.quadraticCurveTo2(
+	                    this.bezierCurveTo2(
 	                        points[z].x + this._trans.x,
 	                        points[z].y + this._trans.y,
 	                        points[z + 1].x + this._trans.x,
-	                        points[z + 1].y + this._trans.y
+	                        points[z + 1].y + this._trans.y,
+	                        points[z + 2].x + this._trans.x,
+	                        points[z + 2].y + this._trans.y
 	                    );
-	                    z += 2;
+	                    z += 3;
 	                    break;
 	                // closepath command
 	                case 'z':
@@ -655,6 +654,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	        x: 0,
 	        y: 0
 	    };
+	    var lastControl = {
+	        x: 0,
+	        y: 0
+	    }
 	    var subpaths = [];
 	    var subpath = {
 	        points: [],
@@ -715,6 +718,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    subpath.points.push(point2);
 	                    subpath.points.push(point3);
 	                    lastPoint = point3;
+	                    lastControl = point2;
 	                    p += 6;
 	                    break;
 	                case 'v':
@@ -729,22 +733,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	                case 'h':
 	                    var point = {};
 	                    point.x = parseScientific(args[p]) + offset.x;
+	                    point.y = lastPoint.y;
 	                    points.push(point);
 	                    subpath.points.push(point);
 	                    lastPoint = point;
 	                    p += 1;
 	                    break;
 	                case 's':
-	                    var point1 = {} , point2 = {};
-	                    point1.x = parseScientific(args[p]) + offset.x;
-	                    point1.y = parseScientific(args[p + 1]) + offset.y;
-	                    point2.x = parseScientific(args[p + 2]) + offset.x;
-	                    point2.y = parseScientific(args[p + 3]) + offset.y;
+	                    var point1 = {} , point2 = {}, point3 = {};
+	                    point1.x = 2 * lastPoint.x - lastControl.x;
+	                    point1.y = 2 * lastPoint.y - lastControl.y;
+	                    point2.x = parseScientific(args[p]) + offset.x;
+	                    point2.y = parseScientific(args[p + 1]) + offset.y;
+	                    point3.x = parseScientific(args[p + 2]) + offset.x;
+	                    point3.y = parseScientific(args[p + 3]) + offset.y;
 	                    points.push(point1);
 	                    points.push(point2);
-	                    lastPoint = point2;
+	                    points.push(point3);
+	                    lastPoint = point3;
+	                    lastControl = point2;
 	                    subpath.points.push(point1);
 	                    subpath.points.push(point2);
+	                    subpath.points.push(point3);
 	                    p += 4;
 	                    break;
 	                case 'z':
@@ -910,8 +920,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false;
 	    if (attributes['stroke-dasharray'] && attributes['stroke-dasharray'] != 'none') {
 	        //ignore unregular dasharray
-	        strokeDashLength = parseFloat(attributes['stroke-dasharray'].split(',')[0]);
-	        strokeSpaceLength = parseFloat(attributes['stroke-dasharray'].split(',')[1]);
+	        strokeDashLength = parseInt(attributes['stroke-dasharray'].split(',')[0]);
+	        strokeSpaceLength = parseInt(attributes['stroke-dasharray'].split(',')[1]);
 	        strokeDashed = true;
 	    }
 	    this.lineSegments = strokeSegments;
@@ -922,15 +932,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this.lineStyle(strokeWidth, strokeColor, strokeAlpha);
 
 	    // Apply fill style
-	    var fillColor = 0x000000, fillAlpha = 0;
+	    var fillColor = 0x000000, fillAlpha = 1;
 	    if (attributes.fill) {
 	        color = color2color(attributes.fill, 'array');
 	        intColor = 256 * 256 * color[0] + 256 * color[1] + color[2];
 	        fillColor = intColor;
 	        fillAlpha = color[3];
-
-	        this.beginFill(fillColor, fillAlpha);
 	    }
+	    this.beginFill(fillColor, fillAlpha);
 	}
 
 	/**
