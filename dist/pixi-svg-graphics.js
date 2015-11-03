@@ -102,15 +102,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGLineElement} node
 	 */
 	SVGGraphics.prototype.drawLineNode = function (node) {
-	  this.applySvgAttributes(node)
+	  var graphics = new PIXI.Graphics()
+	  this.applySvgAttributes(graphics, node)
 
 	  var x1 = parseFloat(node.getAttribute('x1'))
 	  var y1 = parseFloat(node.getAttribute('y1'))
 	  var x2 = parseFloat(node.getAttribute('x2'))
 	  var y2 = parseFloat(node.getAttribute('y2'))
 
-	  this._graphics.moveTo(x1, y1)
-	  this._graphics.lineTo(x2, y2)
+	  graphics.moveTo(x1, y1)
+	  graphics.lineTo(x2, y2)
+	  this._graphics.addChild(graphics)
 	}
 
 	/**
@@ -118,7 +120,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGPolylineElement} node
 	 */
 	SVGGraphics.prototype.drawPolylineNode = function (node) {
-	  this.applySvgAttributes(node)
+	  var graphics = new PIXI.Graphics()
+	  this.applySvgAttributes(graphics, node)
 
 	  var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)'
 	  var points = node.getAttribute('points').match(new RegExp(reg, 'g'))
@@ -132,11 +135,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	    coords[2] = parseFloat(coords[2])
 
 	    if (i === 0) {
-	      this._graphics.moveTo(coords[1], coords[2])
+	      graphics.moveTo(coords[1], coords[2])
 	    } else {
-	      this._graphics.lineTo(coords[1], coords[2])
+	      graphics.lineTo(coords[1], coords[2])
 	    }
 	  }
+	  this._graphics.addChild(graphics)
 	}
 
 	/**
@@ -144,13 +148,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGCircleElement} node
 	 */
 	SVGGraphics.prototype.drawCircleNode = function (node) {
-	  this.applySvgAttributes(node)
+	  var graphics = new PIXI.Graphics()
+	  this.applySvgAttributes(graphics, node)
 
 	  var cx = parseFloat(node.getAttribute('cx'))
 	  var cy = parseFloat(node.getAttribute('cy'))
 	  var r = parseFloat(node.getAttribute('r'))
 
-	  this._graphics.drawCircle(cx, cy, r)
+	  graphics.drawCircle(cx, cy, r)
+	  this._graphics.addChild(graphics)
 	}
 
 	/**
@@ -158,14 +164,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGCircleElement} node
 	 */
 	SVGGraphics.prototype.drawEllipseNode = function (node) {
-	  this.applySvgAttributes(node)
+	  var graphics = new PIXI.Graphics()
+	  this.applySvgAttributes(graphics, node)
 
 	  var cx = parseFloat(node.getAttribute('cx'))
 	  var cy = parseFloat(node.getAttribute('cy'))
 	  var rx = parseFloat(node.getAttribute('rx'))
 	  var ry = parseFloat(node.getAttribute('ry'))
 
-	  this._graphics.drawEllipse(cx, cy, rx, ry)
+	  graphics.drawEllipse(cx, cy, rx, ry)
+	  this._graphics.addChild(graphics)
 	}
 
 	/**
@@ -173,14 +181,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGRectElement} node
 	 */
 	SVGGraphics.prototype.drawRectNode = function (node) {
-	  this.applySvgAttributes(node)
+	  var graphics = new PIXI.Graphics()
+	  this.applySvgAttributes(graphics, node)
 
 	  var x = parseFloat(node.getAttribute('x'))
 	  var y = parseFloat(node.getAttribute('y'))
 	  var width = parseFloat(node.getAttribute('width'))
 	  var height = parseFloat(node.getAttribute('height'))
 
-	  this._graphics.drawRect(x, y, width, height)
+	  graphics.drawRect(x, y, width, height)
+	  this._graphics.addChild(graphics)
 	}
 
 	/**
@@ -188,6 +198,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGPolygonElement} node
 	 */
 	SVGGraphics.prototype.drawPolygonNode = function (node) {
+	  var graphics = new PIXI.Graphics()
+	  this.applySvgAttributes(graphics, node)
+
 	  var reg = '(-?[\\d\\.?]+),(-?[\\d\\.?]+)'
 	  var points = node.getAttribute('points').match(new RegExp(reg, 'g'))
 
@@ -206,8 +219,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    ))
 	  }
 
-	  this.applySvgAttributes(node)
-	  this._graphics.drawPolygon(path)
+	  graphics.drawPolygon(path)
+	  this._graphics.addChild(graphics)
 	}
 
 	/**
@@ -215,14 +228,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGPathElement} node
 	 */
 	SVGGraphics.prototype.drawPathNode = function (node) {
-	  this.applySvgAttributes(node)
+	  var graphics = new PIXI.Graphics()
+	  this.applySvgAttributes(graphics, node)
 
 	  var d = node.getAttribute('d').trim()
 	  var commands = d.match(/[a-df-z][^a-df-z]*/ig)
 	  var command, firstCoord, lastCoord, lastControl
 
 	  var pathIndex = 0
-	  var triangles = []
 	  var j, argslen
 	  var lastPathCoord
 
@@ -252,7 +265,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	        if (pathIndex === 0) {
 	          // First path, just moveTo()
-	          this._graphics.moveTo(args[0], args[1])
+	          graphics.moveTo(args[0], args[1])
 	        } else if (pathIndex === 1) {
 	          // Second path, use lastCoord as lastPathCoord
 	          lastPathCoord = {
@@ -263,14 +276,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	        if (pathIndex > 1) {
 	          // Move from lastCoord to lastPathCoord
-	          this._graphics.lineTo(lastPathCoord.x, lastCoord.y)
-	          this._graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
+	          graphics.lineTo(lastPathCoord.x, lastCoord.y)
+	          graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
 	        }
 
 	        if (pathIndex >= 1) {
 	          // Move from lastPathCoord to new coord
-	          this._graphics.lineTo(lastPathCoord.x, args[1])
-	          this._graphics.lineTo(args[0], args[1])
+	          graphics.lineTo(lastPathCoord.x, args[1])
+	          graphics.lineTo(args[0], args[1])
 	        }
 
 	        if (!firstCoord) {
@@ -284,7 +297,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        args[0] += offset.x
 	        args[1] += offset.y
 
-	        this._graphics.lineTo(
+	        graphics.lineTo(
 	          args[0],
 	          args[1]
 	        )
@@ -297,7 +310,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          args[k + 1] += offset.y
 	        }
 
-	        this._graphics.bezierCurveTo(
+	        graphics.bezierCurveTo(
 	          args[0],
 	          args[1],
 	          args[2],
@@ -312,14 +325,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	      case 'v':
 	        args[0] += offset.y
 
-	        this._graphics.lineTo(lastCoord.x, args[0])
+	        graphics.lineTo(lastCoord.x, args[0])
 	        lastCoord.y = args[0]
 	        break
 	      // horizontal lineto command
 	      case 'h':
 	        args[0] += offset.x
 
-	        this._graphics.lineTo(args[0], lastCoord.y)
+	        graphics.lineTo(args[0], lastCoord.y)
 	        lastCoord.x = args[0]
 	        break
 	      // quadratic curve command
@@ -332,7 +345,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var rx = 2 * lastCoord.x - lastControl.x
 	        var ry = 2 * lastCoord.y - lastControl.y
 
-	        this._graphics.bezierCurveTo(
+	        graphics.bezierCurveTo(
 	          rx,
 	          ry,
 	          args[0],
@@ -354,16 +367,17 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  if (pathIndex > 1) {
 	    // Move from lastCoord to lastPathCoord
-	    this._graphics.lineTo(lastPathCoord.x, lastCoord.y)
-	    this._graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
+	    graphics.lineTo(lastPathCoord.x, lastCoord.y)
+	    graphics.lineTo(lastPathCoord.x, lastPathCoord.y)
 	  }
+	  this._graphics.addChild(graphics)
 	}
 
 	/**
 	 * Applies the given node's attributes to our PIXI.Graphics object
 	 * @param  {SVGElement} node
 	 */
-	SVGGraphics.prototype.applySvgAttributes = function (node) {
+	SVGGraphics.prototype.applySvgAttributes = function (graphics, node) {
 	  var attributes = {}
 
 	  // Get node attributes
@@ -407,7 +421,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      strokeWidth = parseInt(attributes['stroke-width'], 10)
 	    }
 
-	    this._graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha)
+	    graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha)
 	  }
 
 	  // Apply fill style
@@ -418,7 +432,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    fillColor = intColor
 	    fillAlpha = color[3]
 
-	    this._graphics.beginFill(fillColor, fillAlpha)
+	    graphics.beginFill(fillColor, fillAlpha)
 	  }
 	}
 
