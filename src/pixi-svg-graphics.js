@@ -355,7 +355,7 @@ SVGGraphics.prototype.applySvgAttributes = function (node) {
 
   // Apply fill style
   var fillColor = 0x000000, fillAlpha = 0
-  if (attributes.fill) {
+  if (attributes.fill && attributes.fill !== 'none') {
     color = color2color(attributes.fill, 'array')
     intColor = 256 * 256 * color[0] + 256 * color[1] + color[2]
     fillColor = intColor
