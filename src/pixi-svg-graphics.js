@@ -346,12 +346,13 @@ SVGGraphics.prototype.applySvgAttributes = function (node) {
     intColor = 256 * 256 * color[0] + 256 * color[1] + color[2]
     strokeColor = intColor
     strokeAlpha = color[3]
-  }
 
-  if (attributes['stroke-width']) {
-    strokeWidth = parseInt(attributes['stroke-width'], 10)
+    if (attributes['stroke-width']) {
+      strokeWidth = parseInt(attributes['stroke-width'], 10)
+    }
+
+    this._graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha)
   }
-  this._graphics.lineStyle(strokeWidth, strokeColor, strokeAlpha)
 
   // Apply fill style
   var fillColor = 0x000000, fillAlpha = 0
