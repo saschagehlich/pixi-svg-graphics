@@ -320,8 +320,8 @@ SVGGraphics.prototype.applySvgAttributes = function (node) {
 
   // CSS attributes override node attributes
   var style = node.getAttribute('style')
-  var pairs, pair, split, key, value
   if (style) {
+    var pairs, pair, split, key, value
     // Simply parse the inline css
     pairs = style.split(';')
     for (var j = 0, len = pairs.length; j < len; j++) {
@@ -338,10 +338,10 @@ SVGGraphics.prototype.applySvgAttributes = function (node) {
   }
 
   // Apply stroke style
-  var strokeColor = 0x000000, strokeWidth = 1, strokeAlpha = 0
-
-  var color, intColor
   if (attributes.stroke) {
+    var strokeColor = 0x000000, strokeWidth = 1, strokeAlpha = 0
+    var color, intColor
+
     color = color2color(attributes.stroke, 'array')
     intColor = 256 * 256 * color[0] + 256 * color[1] + color[2]
     strokeColor = intColor
@@ -355,8 +355,8 @@ SVGGraphics.prototype.applySvgAttributes = function (node) {
   }
 
   // Apply fill style
-  var fillColor = 0x000000, fillAlpha = 0
   if (attributes.fill && attributes.fill !== 'none') {
+    var fillColor = 0x000000, fillAlpha = 0
     color = color2color(attributes.fill, 'array')
     intColor = 256 * 256 * color[0] + 256 * color[1] + color[2]
     fillColor = intColor
