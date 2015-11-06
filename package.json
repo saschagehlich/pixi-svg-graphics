@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Sascha Gehlich <sascha@gehlich.us>",
+  "author": "Sascha Gehlich <sascha@gehlich.us> and Mike Barkmin <m.barkmin@greyrook.com>",
   "license": "MIT",
   "devDependencies": {
     "gulp": "^3.8.11",
