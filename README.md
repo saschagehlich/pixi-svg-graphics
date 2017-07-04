@@ -24,6 +24,46 @@ Or just include pixi-svg-graphics.min.js in your HTML:
 
 The module is then available using `window.SVGGraphics`
 
+Supported Tags:
+------
+
+- &lt;svg>
+- &lt;style>
+- &lt;g>
+- &lt;text>
+- &lt;line>
+- &lt;polyline>
+- &lt;circle>
+- &lt;ellipse>
+- &lt;rect> (no rounded corners supported)
+- &lt;polygon>
+- &lt;path>
+
+Supported Attributes:
+------
+
+- class
+- style
+- fill
+- stroke
+- stroke-width
+- stroke-dasharray
+- vector-effect
+- transform:
+  - matrix
+  - translate
+  - scale
+  - rotate
+  - not supported: skewX, skewY
+- d (&lt;path> only):
+  - M (move to)
+  - L (line to)
+  - C (curve to)
+  - V (vertical line to)
+  - H (horizontal line to)
+  - S (quadratic curve to)
+  - Z (close path)
+
 Test:
 -----
 
@@ -33,7 +73,6 @@ with your credentials.  Then you can run 'run_tests.py'. This will automatically
 start an nginx server, convert all test images inside 'test/src' to png's using
 inkscape and will then compare these png's with png's, which are created
 through browserstack. Afterwards it will run an image comparison tool.
-
 
 Todos:
 ------
