@@ -616,7 +616,20 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         var args = [];
 
         //allow any decimal number in normal or scientific form
-        args = args.concat(commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g));
+        args = args.concat(commands[i].slice(1).trim().match(/[+|-]?(?:0|[0-9]\d*)?(?:\.\d*)?(?:[eE][+\-]?\d+)?/g));
+
+
+        for(var j= args.length-1;j>= 0;j--){
+            var arg = args[j];
+            if(arg == ""){
+                args.splice(j, 1)
+            }
+        }
+
+        //args = args.filter(function(n){
+        //    return n != "";
+        //});
+
         var p = 0;
         while (p < args.length) {
             var offset = {
