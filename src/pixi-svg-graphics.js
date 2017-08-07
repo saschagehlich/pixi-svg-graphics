@@ -766,7 +766,9 @@ SVGGraphics.prototype.applyTransformation = function (node) {
         var transformMatrix = new PIXI.Matrix();
         var transformAttr = node.getAttribute('transform').trim().split('(');
         var transformCommand = transformAttr[0];
-        var transformValues = transformAttr[1].replace(')', '').split(',');
+        var transformValues = transformAttr[1].replace(')', '');
+        transformValues = splitAttributeParams(transformValues);
+
         if (transformCommand == 'matrix') {
             transformMatrix.a = parseScientific(transformValues[0]);
             transformMatrix.b = parseScientific(transformValues[1]);
@@ -880,8 +882,9 @@ SVGGraphics.prototype.applySvgAttributes = function (attributes) {
     var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false;
     if (attributes['stroke-dasharray'] && attributes['stroke-dasharray'] != 'none') {
         //ignore unregular dasharray
-        strokeDashLength = parseInt(attributes['stroke-dasharray'].split(',')[0]);
-        strokeSpaceLength = parseInt(attributes['stroke-dasharray'].split(',')[1]);
+        var params = splitAttributeParams(attributes['stroke-dasharray']);
+        strokeDashLength = parseInt(params[0]);
+        strokeSpaceLength = parseInt(params[1]);
         strokeDashed = true;
     }
     this.lineSegments = strokeSegments;
@@ -917,6 +920,15 @@ SVGGraphics.prototype.drawSVG = function (svg) {
     }
 }
 
+
+var splitAttributeParams = function(attr){
+    if(attr.indexOf(",") >= 0){
+        return attr.split(",")
+    } else {
+        //Especially in IE Edge, the parameters do not have to be split by commas, IE even replaces commas with spaces!
+        return attr.split(" ")
+    }
+};
 
 var parseScientific = function (numberString) {
     var info = /([\d\.]+)e-(\d+)/i.exec(numberString);
