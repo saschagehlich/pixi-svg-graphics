@@ -724,6 +724,9 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     };
                     p += 1;
                     break;
+                default:
+                    p += 1;
+                    break;
             }
             instruction.points = instruction.points.concat(points);
         }
