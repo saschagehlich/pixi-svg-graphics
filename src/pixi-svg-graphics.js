@@ -302,7 +302,7 @@ SVGGraphics.prototype.drawNode = function (node) {
  * @param  {SVGSVGElement} node
  */
 SVGGraphics.prototype.drawSvgNode = function (node) {
-    var children = node.children;
+    var children = node.children || node.childNodes;
     for (var i = 0; i < children.length; i++) {
         var child = children[i];
         if (child.tagName == 'style') {
