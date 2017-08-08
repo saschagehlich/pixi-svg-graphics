@@ -1,6 +1,12 @@
 /* @flow weak */
 
-var PIXI = require('PIXI')
+try{
+    var PIXI = require('PIXI')
+} catch (err){
+    var PIXI = window.PIXI
+    console.log(err)
+}
+
 var color2color = require('./vendor/color2color')
 
 function SVGGraphics(svg) {
