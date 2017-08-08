@@ -61,7 +61,7 @@ Supported Attributes:
   - C (curve to)
   - V (vertical line to)
   - H (horizontal line to)
-  - S (quadratic curve to)
+  - S (bezier curve to)
   - Z (close path)
 
 Test:
