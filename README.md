@@ -37,7 +37,7 @@ Supported Tags:
 - &lt;ellipse>
 - &lt;rect> (no rounded corners supported)
 - &lt;polygon>
-- &lt;path>
+- &lt;path> (points that are too close together, like less than 1 pixel until a few pixels, can lead to graphic errors)
 
 Supported Attributes:
 ------
