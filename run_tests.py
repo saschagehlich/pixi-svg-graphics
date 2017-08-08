@@ -38,13 +38,13 @@ class AppData(object):
 
 
 class Flow(AppData):
-    download_url = 'https://facebook.github.io/flow/downloads/flow-linux64-latest.zip'
+    download_url = 'https://github.com/facebook/flow/releases/download/v0.52.0/flow-linux64-v0.52.0.zip'
     zip_path = 'flow/flow'
     min_version = [0, 14, 0]
     executable = FLOW
 
     def get_version(self):
-        version = subprocess.check_output([self.executable, '--version'])
+        version = subprocess.check_output([self.executable, 'version'])
         version = version.strip()
         i = version.rfind(' ')
         version = version[i:]

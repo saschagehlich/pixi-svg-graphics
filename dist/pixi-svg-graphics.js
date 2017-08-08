@@ -408,7 +408,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var font = styles_obj['font-size'] + " " + styles_obj['font-family'];
 	    var fill = styles_obj['fill'];
 	    var tspan = node.childNodes[0];
-	    var text = tspan.innerHTML;
+	    var text = tspan.innerHTML || tspan.textContent;
 	    var pixi_text = new PIXI.Text(text, {font: font, fill: fill});
 	    pixi_text.x = node.getAttribute('x');
 	    pixi_text.y = node.getAttribute('y');
