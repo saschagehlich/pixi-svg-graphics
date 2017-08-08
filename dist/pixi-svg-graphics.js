@@ -1,10 +1,10 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("pixi.js"));
+		module.exports = factory((function webpackLoadOptionalExternalModule() { try { return require("pixi.js"); } catch(e) {} }()));
 	else if(typeof define === 'function' && define.amd)
 		define(["pixi.js"], factory);
 	else if(typeof exports === 'object')
-		exports["SVGGraphics"] = factory(require("pixi.js"));
+		exports["SVGGraphics"] = factory((function webpackLoadOptionalExternalModule() { try { return require("pixi.js"); } catch(e) {} }()));
 	else
 		root["SVGGraphics"] = factory(root["PIXI"]);
 })(this, function(__WEBPACK_EXTERNAL_MODULE_1__) {
@@ -56,7 +56,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	/* @flow weak */
 
-	var PIXI = __webpack_require__(1)
+	try{
+	    var PIXI = __webpack_require__(1)
+	} catch (err){
+	    var PIXI = window.PIXI
+	    console.log(err)
+	}
+
 	var color2color = __webpack_require__(2)
 
 	function SVGGraphics(svg) {
@@ -358,7 +364,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGSVGElement} node
 	 */
 	SVGGraphics.prototype.drawSvgNode = function (node) {
-	    var children = node.children;
+	    var children = node.children || node.childNodes;
 	    for (var i = 0; i < children.length; i++) {
 	        var child = children[i];
 	        if (child.tagName == 'style') {
@@ -672,7 +678,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var args = [];
 
 	        //allow any decimal number in normal or scientific form
-	        args = args.concat(commands[i].slice(1).trim().match(/[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g));
+	        args = args.concat(commands[i].slice(1).trim().match(/[+|-]?(?:0|[0-9]\d*)?(?:\.\d*)?(?:[eE][+\-]?\d+)?/g));
+
+
+	        for(var j= args.length-1;j>= 0;j--){
+	            var arg = args[j];
+	            if(arg == ""){
+	                args.splice(j, 1)
+	            }
+	        }
+
+	        //args = args.filter(function(n){
+	        //    return n != "";
+	        //});
+
 	        var p = 0;
 	        while (p < args.length) {
 	            var offset = {
@@ -767,6 +786,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    };
 	                    p += 1;
 	                    break;
+	                default:
+	                    p += 1;
+	                    break;
 	            }
 	            instruction.points = instruction.points.concat(points);
 	        }
@@ -806,7 +828,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var transformMatrix = new PIXI.Matrix();
 	        var transformAttr = node.getAttribute('transform').trim().split('(');
 	        var transformCommand = transformAttr[0];
-	        var transformValues = transformAttr[1].replace(')', '').split(',');
+	        var transformValues = transformAttr[1].replace(')', '');
+	        transformValues = splitAttributeParams(transformValues);
+
 	        if (transformCommand == 'matrix') {
 	            transformMatrix.a = parseScientific(transformValues[0]);
 	            transformMatrix.b = parseScientific(transformValues[1]);
@@ -920,8 +944,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false;
 	    if (attributes['stroke-dasharray'] && attributes['stroke-dasharray'] != 'none') {
 	        //ignore unregular dasharray
-	        strokeDashLength = parseInt(attributes['stroke-dasharray'].split(',')[0]);
-	        strokeSpaceLength = parseInt(attributes['stroke-dasharray'].split(',')[1]);
+	        var params = splitAttributeParams(attributes['stroke-dasharray']);
+	        strokeDashLength = parseInt(params[0]);
+	        strokeSpaceLength = parseInt(params[1]);
 	        strokeDashed = true;
 	    }
 	    this.lineSegments = strokeSegments;
@@ -958,6 +983,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 
 
+	var splitAttributeParams = function(attr){
+	    if(attr.indexOf(",") >= 0){
+	        return attr.split(",")
+	    } else {
+	        //Especially in IE Edge, the parameters do not have to be split by commas, IE even replaces commas with spaces!
+	        return attr.split(" ")
+	    }
+	};
+
 	var parseScientific = function (numberString) {
 	    var info = /([\d\.]+)e-(\d+)/i.exec(numberString);
 	    if (!info) {
@@ -980,6 +1014,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 1 */
 /***/ function(module, exports) {
 
+	if(typeof __WEBPACK_EXTERNAL_MODULE_1__ === 'undefined') {var e = new Error("Cannot find module \"undefined\""); e.code = 'MODULE_NOT_FOUND'; throw e;}
 	module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
 
 /***/ },
