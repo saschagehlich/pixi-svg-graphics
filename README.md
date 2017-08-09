@@ -49,7 +49,7 @@ Supported Attributes:
 - stroke-width
 - stroke-dasharray
 - vector-effect
-- transform:
+- transform (only supported for transforming the whole svg)
   - matrix
   - translate
   - scale
