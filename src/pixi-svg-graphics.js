@@ -9,7 +9,6 @@ function SVGGraphics(svg) {
     this._svg = svg;
     this._wt = new PIXI.Matrix();
     this._classes = {};
-    this._trans = {'x': 0, 'y': 0};
     this._lineWidth = 0;
     this._nonScaling = false;
     if (svg) {
@@ -500,8 +499,8 @@ SVGGraphics.prototype.drawPathData = function (data) {
             switch (command.toLowerCase()) {
                 // moveto command
                 case 'm':
-                    var x = points[z].x + this._trans.x;
-                    var y = points[z].y + this._trans.y;
+                    var x = points[z].x;
+                    var y = points[z].y;
 
                     //check if we need to create "holes"
                     var lastDirection;
@@ -523,8 +522,8 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     break;
                 // lineto command
                 case 'l':
-                    var x = points[z].x + this._trans.x;
-                    var y = points[z].y + this._trans.y;
+                    var x = points[z].x;
+                    var y = points[z].y;
 
                     this.lineTo2(x, y);
                     z += 1;
@@ -532,27 +531,27 @@ SVGGraphics.prototype.drawPathData = function (data) {
                 // curveto command
                 case 'c':
                     this.bezierCurveTo2(
-                        points[z].x + this._trans.x,
-                        points[z].y + this._trans.y,
-                        points[z + 1].x + this._trans.x,
-                        points[z + 1].y + this._trans.y,
-                        points[z + 2].x + this._trans.x,
-                        points[z + 2].y + this._trans.y
+                        points[z].x,
+                        points[z].y,
+                        points[z + 1].x,
+                        points[z + 1].y,
+                        points[z + 2].x,
+                        points[z + 2].y
                     );
                     z += 3;
                     break;
                 // vertial lineto command
                 case 'v':
-                    var x = points[z].x + this._trans.x;
-                    var y = points[z].y + this._trans.y;
+                    var x = points[z].x
+                    var y = points[z].y
 
                     this.lineTo2(x, y);
                     z += 1;
                     break;
                 // horizontal lineto command
                 case 'h':
-                    var x = points[z].x + this._trans.x;
-                    var y = points[z].y + this._trans.y;
+                    var x = points[z].x
+                    var y = points[z].y
 
                     this.lineTo2(x, y);
                     z += 1;
@@ -560,12 +559,12 @@ SVGGraphics.prototype.drawPathData = function (data) {
                 // quadratic curve command
                 case 's':
                     this.bezierCurveTo2(
-                        points[z].x + this._trans.x,
-                        points[z].y + this._trans.y,
-                        points[z + 1].x + this._trans.x,
-                        points[z + 1].y + this._trans.y,
-                        points[z + 2].x + this._trans.x,
-                        points[z + 2].y + this._trans.y
+                        points[z].x,
+                        points[z].y,
+                        points[z + 1].x,
+                        points[z + 1].y,
+                        points[z + 2].x,
+                        points[z + 2].y
                     );
                     z += 3;
                     break;
@@ -778,29 +777,29 @@ SVGGraphics.prototype.applyTransformation = function (node) {
             transformMatrix.ty = parseScientific(transformValues[5]);
             var point = {x: 0, y: 0};
             var trans_point = transformMatrix.apply(point);
-            this._trans.x += trans_point.x;
-            this._trans.y += trans_point.y;
+            this.x += trans_point.x;
+            this.y += trans_point.y;
             this.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b);
             this.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d);
 
             this.rotation = -Math.acos(transformMatrix.a / this.scale.x);
         } else if (transformCommand == 'translate') {
-            this._trans.x += parseScientific(transformValues[0]);
-            this._trans.y += parseScientific(transformValues[1]);
+            this.x += parseScientific(transformValues[0]);
+            this.y += parseScientific(transformValues[1]);
         } else if (transformCommand == 'scale') {
             this.scale.x = parseScientific(transformValues[0]);
             this.scale.y = parseScientific(transformValues[1]);
         } else if (transformCommand == 'rotate') {
             if (transformValues.length > 1) {
-                this._trans.x += parseScientific(transformValues[1]);
-                this._trans.y += parseScientific(transformValues[2]);
+                this.x += parseScientific(transformValues[1]);
+                this.y += parseScientific(transformValues[2]);
             }
 
             this.rotation = parseScientific(transformValues[0]);
 
             if (transformValues.length > 1) {
-                this._trans.x -= parseScientific(transformValues[1]);
-                this._trans.y -= parseScientific(transformValues[2]);
+                this.x -= parseScientific(transformValues[1]);
+                this.y -= parseScientific(transformValues[2]);
             }
         }
     }
