@@ -348,13 +348,16 @@ SVGGraphics.prototype.drawTextNode = function (node) {
         var val = splitted_style[1];
         styles_obj[key] = val;
     }
-    var font = styles_obj['font-size'] + " " + styles_obj['font-family'];
+    var fontFamily = styles_obj['font-family'];
+    var fontSize = styles_obj['font-size'];
     var fill = styles_obj['fill'];
     var tspan = node.childNodes[0];
     var text = tspan.innerHTML || tspan.textContent;
-    var pixi_text = new PIXI.Text(text, {font: font, fill: fill});
-    pixi_text.x = node.getAttribute('x');
-    pixi_text.y = node.getAttribute('y');
+    var pixi_text = new PIXI.Text(text, {fontFamily: fontFamily, fontSize: fontSize, fill: fill});
+    var x = tspan.getAttribute('x') || node.getAttribute('x') || 0;
+    var y = tspan.getAttribute('y') || node.getAttribute('y') || 0;
+    pixi_text.x = parseInt(x);
+    pixi_text.y = parseInt(y) - pixi_text.height;
     this.addChild(pixi_text);
 }
 
@@ -491,10 +494,12 @@ SVGGraphics.prototype.drawPathData = function (data) {
 
     for (var i = 0; i < instructions.length; i++) {
         var command = instructions[i].command;
-        var args = instructions[i].args;
         var points = instructions[i].points;
         var z = 0;
         var fill = true;
+        if (command.toLowerCase() === 'z' && points.length === 0) {
+            points.length = 1
+        }
         while (z < points.length) {
             switch (command.toLowerCase()) {
                 // moveto command
@@ -576,10 +581,7 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     // Z command is handled by M
                     break;
                 default:
-                    throw new Error('Could not handle path command: ' + command + ' ' + args.join(','));
-            }
-            if (this.graphicsData[this.graphicsData - 1]) {
-                this.graphicsData[this.graphicsData - 1]._lineWidth = this._lineWidth;
+                    throw new Error('Could not handle path command: ' + command);
             }
         }
     }
@@ -597,10 +599,7 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         x: 0,
         y: 0
     };
-    var lastControl = {
-        x: 0,
-        y: 0
-    }
+    var lastControl = null
     var subpaths = [];
     var subpath = {
         points: [],
@@ -628,6 +627,10 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         //args = args.filter(function(n){
         //    return n != "";
         //});
+
+        if (command.toLowerCase() === 'z' && args.length === 0) {
+            args.length = 1
+        }
 
         var p = 0;
         while (p < args.length) {
@@ -697,8 +700,13 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     break;
                 case 's':
                     var point1 = {} , point2 = {}, point3 = {};
-                    point1.x = 2 * lastPoint.x - lastControl.x;
-                    point1.y = 2 * lastPoint.y - lastControl.y;
+                    if(lastControl === null) {
+                        point1.x = lastPoint.x
+                        point1.y = lastPoint.y
+                    } else {
+                        point1.x = lastControl.x;
+                        point1.y = lastControl.y;
+                    }
                     point2.x = parseScientific(args[p]) + offset.x;
                     point2.y = parseScientific(args[p + 1]) + offset.y;
                     point3.x = parseScientific(args[p + 2]) + offset.x;
