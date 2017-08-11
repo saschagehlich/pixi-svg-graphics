@@ -563,7 +563,7 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     this.lineTo2(x, y);
                     z += 1;
                     break;
-                // quadratic curve command
+                // bezier curve command
                 case 's':
                     this.bezierCurveTo2(
                         points[z].x + this._trans.x,
