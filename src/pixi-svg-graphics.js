@@ -28,17 +28,24 @@ PIXI.Graphics.prototype.lineTo2 = function (x, y) {
         if (distance <= this.lineDashLength) {
             this.currentPath.shape.points.push(x, y);
         } else {
-            var segments = this.lineDashLength / distance;
+            var spaceSegment = this.lineSpaceLength / distance
+            var dashSegment = this.lineDashLength / distance
+            var currSegment = dashSegment
+
             var dashOn = false;
             var pX, pY;
-            for (var i = segments; i <= 1; i += segments) {
+            for (var i = currSegment; i <= 1; i += currSegment) {
+
                 var t = Math.max(Math.min(i, 1), 0);
                 pX = fromX + (t * (x - fromX));
                 pY = fromY + (t * (y - fromY));
+
                 dashOn = !dashOn;
                 if (dashOn) {
+                    currSegment = spaceSegment
                     this.currentPath.shape.points.push(pX, pY);
                 } else {
+                    currSegment = dashSegment
                     this.currentPath.shape.closed = false;
                     this.moveTo(pX, pY);
                 }
