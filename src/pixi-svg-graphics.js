@@ -1,6 +1,12 @@
 /* @flow weak */
 
-var PIXI = require('PIXI')
+try{
+    var PIXI = require('PIXI')
+} catch (err){
+    var PIXI = window.PIXI
+    console.log(err)
+}
+
 var color2color = require('./vendor/color2color')
 
 function SVGGraphics(svg) {
@@ -511,7 +517,7 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     this.lineTo2(x, y);
                     z += 1;
                     break;
-                // quadratic curve command
+                // bezier curve command
                 case 's':
                     this.bezierCurveTo2(
                         points[z].x,

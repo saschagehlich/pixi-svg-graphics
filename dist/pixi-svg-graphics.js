@@ -1,10 +1,10 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("pixi.js"));
+		module.exports = factory((function webpackLoadOptionalExternalModule() { try { return require("pixi.js"); } catch(e) {} }()));
 	else if(typeof define === 'function' && define.amd)
 		define(["pixi.js"], factory);
 	else if(typeof exports === 'object')
-		exports["SVGGraphics"] = factory(require("pixi.js"));
+		exports["SVGGraphics"] = factory((function webpackLoadOptionalExternalModule() { try { return require("pixi.js"); } catch(e) {} }()));
 	else
 		root["SVGGraphics"] = factory(root["PIXI"]);
 })(this, function(__WEBPACK_EXTERNAL_MODULE_1__) {
@@ -56,7 +56,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	/* @flow weak */
 
-	var PIXI = __webpack_require__(1)
+	try{
+	    var PIXI = __webpack_require__(1)
+	} catch (err){
+	    var PIXI = window.PIXI
+	    console.log(err)
+	}
+
 	var color2color = __webpack_require__(2)
 
 	function SVGGraphics(svg) {
@@ -708,6 +714,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	                default:
 	                    p += 1;
 	                    break;
+	                default:
+	                    p += 1;
+	                    break;
 	            }
 	            instruction.points = instruction.points.concat(points);
 	        }
@@ -909,6 +918,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 1 */
 /***/ (function(module, exports) {
 
+	if(typeof __WEBPACK_EXTERNAL_MODULE_1__ === 'undefined') {var e = new Error("Cannot find module \"undefined\""); e.code = 'MODULE_NOT_FOUND'; throw e;}
 	module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
 
 /***/ }),
