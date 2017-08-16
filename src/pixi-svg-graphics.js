@@ -442,7 +442,13 @@ SVGGraphics.prototype.drawPathNode = function (node) {
  */
 SVGGraphics.prototype.drawPathData = function (data) {
     var instructions = data.instructions;
-    var firstZCommand = true;
+    var subPathIndices = []
+
+    for (var j = 0; j < instructions.length; j++) {
+        if (instructions[j].command.toLowerCase() === 'm') {
+            subPathIndices.push(j)
+        }
+    }
 
     for (var i = 0; i < instructions.length; i++) {
         var command = instructions[i].command;
@@ -459,6 +465,9 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     var y = points[z].y;
 
                     if (z === 0) {
+                        if(subPathIndices.indexOf(i) >= 2) {
+                            this.addHole()
+                        }
                         this.moveTo(x, y);
                         this.graphicsData[this.graphicsData.length -1].shape.closed = false
                     } else {
@@ -516,16 +525,17 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     break;
                 // closepath command
                 case 'z':
-                    if (!firstZCommand) {
-                        this.addHole()
-                    }
-                    firstZCommand = false;
+                    this.graphicsData[this.graphicsData.length -1].shape.closed = true
                     z += 1;
                     break;
                 default:
                     throw new Error('Could not handle path command: ' + command);
             }
         }
+    }
+    // add the last subpath as a hole if there were holes added before and there is no z command in the end
+    if (subPathIndices.length > 1) {
+        this.addHole()
     }
 }
 
@@ -579,15 +589,6 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     points.push(point);
                     lastPoint = point;
                     p += 2;
-
-                    // In case that the z command before the m command was omitted
-                    // (except for the first m command), we will set it.
-                    if(commands[i-1] && commands[i-1][0].toLowerCase() !== 'z') {
-                        data.instructions.push({
-                            command: 'z',
-                            points: []
-                        });
-                    }
                     break;
                 case 'l':
                     var point = {};
@@ -656,14 +657,6 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         }
         instruction.command = command;
         data.instructions.push(instruction);
-    }
-
-    // If path data ends with no z command, then we need to push the last z instruction
-    if(data.instructions[data.instructions.length-1].command.toLowerCase() !== 'z') {
-        data.instructions.push({
-            command: 'z',
-            points: []
-        });
     }
 
     return data;
