@@ -460,6 +460,7 @@ SVGGraphics.prototype.drawPathData = function (data) {
 
                     if (z === 0) {
                         this.moveTo(x, y);
+                        this.graphicsData[this.graphicsData.length -1].shape.closed = false
                     } else {
                         this.lineTo2(x, y);
                     }
