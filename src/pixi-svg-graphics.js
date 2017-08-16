@@ -442,13 +442,12 @@ SVGGraphics.prototype.drawPathNode = function (node) {
  */
 SVGGraphics.prototype.drawPathData = function (data) {
     var instructions = data.instructions;
-    var subpathIndex = 0;
+    var firstZCommand = true;
 
     for (var i = 0; i < instructions.length; i++) {
         var command = instructions[i].command;
         var points = instructions[i].points;
         var z = 0;
-        var fill = true;
         if (command.toLowerCase() === 'z' && points.length === 0) {
             points.length = 1
         }
@@ -459,19 +458,8 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     var x = points[z].x;
                     var y = points[z].y;
 
-                    //check if we need to create "holes"
-                    var lastDirection;
-                    var direction = lastDirection = data.subpaths[subpathIndex].direction;
-                    if (subpathIndex > 0) {
-                        lastDirection = data.subpaths[subpathIndex - 1].direction;
-                        if (direction != lastDirection) {
-                            fill = false;
-                        }
-                    }
-
-                    if (z == 0 && fill) {
+                    if (z === 0) {
                         this.moveTo(x, y);
-                        this.graphicsData[this.graphicsData.length - 1].shape.closed = false;
                     } else {
                         this.lineTo2(x, y);
                     }
@@ -527,10 +515,11 @@ SVGGraphics.prototype.drawPathData = function (data) {
                     break;
                 // closepath command
                 case 'z':
+                    if (!firstZCommand) {
+                        this.addHole()
+                    }
+                    firstZCommand = false;
                     z += 1;
-                    subpathIndex += 1;
-                    this.graphicsData[this.graphicsData.length - 1].shape.closed = true;
-                    // Z command is handled by M
                     break;
                 default:
                     throw new Error('Could not handle path command: ' + command);
@@ -542,8 +531,7 @@ SVGGraphics.prototype.drawPathData = function (data) {
 SVGGraphics.prototype.tokenizePathData = function (pathData) {
     var commands = pathData.match(/[a-df-z][^a-df-z]*/ig);
     var data = {
-        instructions: [],
-        subpaths: []
+        instructions: []
     };
 
     //needed to calculate absolute position of points
@@ -552,11 +540,7 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         y: 0
     };
     var lastControl = null
-    var subpaths = [];
-    var subpath = {
-        points: [],
-        direction: ''
-    };
+
     for (var i = 0; i < commands.length; i++) {
         var instruction = {
             command: '',
@@ -568,20 +552,11 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         //allow any decimal number in normal or scientific form
         args = args.concat(commands[i].slice(1).trim().match(/[+|-]?(?:0|[0-9]\d*)?(?:\.\d*)?(?:[eE][+\-]?\d+)?/g));
 
-
         for(var j= args.length-1;j>= 0;j--){
             var arg = args[j];
-            if(arg == ""){
+            if(arg === ""){
                 args.splice(j, 1)
             }
-        }
-
-        //args = args.filter(function(n){
-        //    return n != "";
-        //});
-
-        if (command.toLowerCase() === 'z' && args.length === 0) {
-            args.length = 1
         }
 
         var p = 0;
@@ -601,16 +576,23 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     point.x = parseScientific(args[p]) + offset.x;
                     point.y = parseScientific(args[p + 1]) + offset.y;
                     points.push(point);
-                    subpath.points.push(point);
                     lastPoint = point;
                     p += 2;
+
+                    // In case that the z command before the m command was omitted
+                    // (except for the first m command), we will set it.
+                    if(commands[i-1] && commands[i-1][0].toLowerCase() !== 'z') {
+                        data.instructions.push({
+                            command: 'z',
+                            points: []
+                        });
+                    }
                     break;
                 case 'l':
                     var point = {};
                     point.x = parseScientific(args[p]) + offset.x;
                     point.y = parseScientific(args[p + 1]) + offset.y;
                     points.push(point);
-                    subpath.points.push(point);
                     lastPoint = point;
                     p += 2;
                     break;
@@ -625,9 +607,6 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     points.push(point1);
                     points.push(point2);
                     points.push(point3);
-                    subpath.points.push(point1);
-                    subpath.points.push(point2);
-                    subpath.points.push(point3);
                     lastPoint = point3;
                     lastControl = point2;
                     p += 6;
@@ -637,7 +616,6 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     point.y = parseScientific(args[p]) + offset.y;
                     point.x = lastPoint.x;
                     points.push(point);
-                    subpath.points.push(point);
                     lastPoint = point;
                     p += 1;
                     break;
@@ -646,7 +624,6 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     point.x = parseScientific(args[p]) + offset.x;
                     point.y = lastPoint.y;
                     points.push(point);
-                    subpath.points.push(point);
                     lastPoint = point;
                     p += 1;
                     break;
@@ -668,20 +645,7 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                     points.push(point3);
                     lastPoint = point3;
                     lastControl = point2;
-                    subpath.points.push(point1);
-                    subpath.points.push(point2);
-                    subpath.points.push(point3);
                     p += 4;
-                    break;
-                case 'z':
-                    points.push({x: 0, y: 0});
-                    //subpath is closed so we need to push the subpath
-                    subpath.direction = this.getPathDirection(subpath);
-                    subpaths.push(subpath);
-                    subpath = {
-                        points: []
-                    };
-                    p += 1;
                     break;
                 default:
                     p += 1;
@@ -693,31 +657,15 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
         data.instructions.push(instruction);
     }
 
-    //If path data ends with no z command, then we need to push the last subpath
-    if (subpath.points.length > 0) {
-        subpath.direction = this.getPathDirection(subpath);
-        subpaths.push(subpath);
+    // If path data ends with no z command, then we need to push the last z instruction
+    if(data.instructions[data.instructions.length-1].command.toLowerCase() !== 'z') {
+        data.instructions.push({
+            command: 'z',
+            points: []
+        });
     }
-    data.subpaths = subpaths;
-    return data;
-}
 
-SVGGraphics.prototype.getPathDirection = function (path) {
-    //based on http://stackoverflow.com/a/1584377
-    var points = path.points;
-    var sum = 0;
-    for (var i = 0; i < points.length - 1; i++) {
-        var curPoint = points[i];
-        var nexPoint = points[(i + 1)];
-        sum += (nexPoint.x - curPoint.x) * (nexPoint.y + curPoint.y);
-    }
-    if (sum > 0) {
-        //clockwise
-        return 'cw';
-    } else {
-        //counter-clockwise
-        return 'ccw';
-    }
+    return data;
 }
 
 SVGGraphics.prototype.applyTransformation = function (node) {
