@@ -65,7 +65,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this._svg = svg;
 	    this._wt = new PIXI.Matrix();
 	    this._classes = {};
-	    this._trans = {'x': 0, 'y': 0};
 	    this._lineWidth = 0;
 	    this._nonScaling = false;
 	    if (svg) {
@@ -85,17 +84,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	        if (distance <= this.lineDashLength) {
 	            this.currentPath.shape.points.push(x, y);
 	        } else {
-	            var segments = this.lineDashLength / distance;
+	            var spaceSegment = this.lineSpaceLength / distance
+	            var dashSegment = this.lineDashLength / distance
+	            var currSegment = dashSegment
+
 	            var dashOn = false;
 	            var pX, pY;
-	            for (var i = segments; i <= 1; i += segments) {
+	            for (var i = currSegment; i <= 1; i += currSegment) {
+
 	                var t = Math.max(Math.min(i, 1), 0);
 	                pX = fromX + (t * (x - fromX));
 	                pY = fromY + (t * (y - fromY));
+
 	                dashOn = !dashOn;
 	                if (dashOn) {
+	                    currSegment = spaceSegment
 	                    this.currentPath.shape.points.push(pX, pY);
 	                } else {
+	                    currSegment = dashSegment
 	                    this.currentPath.shape.closed = false;
 	                    this.moveTo(pX, pY);
 	                }
@@ -277,62 +283,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return clone
 	};
 
-	SVGGraphics.prototype.updateTransform = function () {
-	    PIXI.DisplayObject.prototype.updateTransform.call(this);
-
-	    var wt = this.worldTransform;
-	    var scaleX = 1;
-	    var scaleY = 1;
-	    var tx = wt.tx;
-	    var ty = wt.ty;
-
-	    scaleX = Math.sqrt(Math.pow(wt.a, 2) + Math.pow(wt.b, 2));
-	    scaleY = Math.sqrt(Math.pow(wt.c, 2) + Math.pow(wt.d, 2));
-
-	    wt.scale(scaleX !== 0 ? 1 / scaleX : 0, scaleY !== 0 ? 1 / scaleY : 0);
-	    wt.tx = tx;
-	    wt.ty = ty;
-
-
-	    var scaleChanged = this._lastScaleX != scaleX || this._lastScaleY != scaleY;
-	    if (this.dirtyScale || scaleChanged) {
-	        this.graphicsDataOrg = this.graphicsDataOrg || [];
-	        for (var i = this.graphicsDataOrg.length; i < this.graphicsData.length; i++) {
-	            this.graphicsDataOrg.push(this.graphicsData[i].clone());
-	        }
-
-
-	        for (var i = 0; i < this.graphicsDataOrg.length; i++) {
-	            var pointsOrg = this.graphicsDataOrg[i].shape.points;
-	            var points = this.graphicsData[i].shape.points;
-	            if (points) {
-	                for (var p = 0; p < points.length/2; p++) {
-	                    points[p * 2] = pointsOrg[p * 2] * scaleX;
-	                    points[p * 2 + 1] = pointsOrg[p * 2 + 1] * scaleY;
-	                }
-	            }
-
-	            /*
-
-	             var gd = this.graphicsData[i];
-	             if(!gd._lineWidth) {
-	             gd._lineWidth = gd.lineWidth;
-	             }
-	             if(this._nonScaling) {
-	             gd.lineWidth = gd._lineWidth * this._scale;
-	             }
-
-
-	             */
-
-	        }
-	        this.dirtyScale = false;
-	    }
-	    this._lastScaleX = scaleX;
-	    this._lastScaleY = scaleY;
-	}
-
-
 	/**
 	 * Draws the given node
 	 * @param  {SVGElement} node
@@ -405,13 +355,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var val = splitted_style[1];
 	        styles_obj[key] = val;
 	    }
-	    var font = styles_obj['font-size'] + " " + styles_obj['font-family'];
+	    var fontFamily = styles_obj['font-family'];
+	    var fontSize = styles_obj['font-size'];
 	    var fill = styles_obj['fill'];
 	    var tspan = node.childNodes[0];
 	    var text = tspan.innerHTML || tspan.textContent;
-	    var pixi_text = new PIXI.Text(text, {font: font, fill: fill});
-	    pixi_text.x = node.getAttribute('x');
-	    pixi_text.y = node.getAttribute('y');
+
+	    var pixi_text = new PIXI.Text(text, {fontFamily: fontFamily, fontSize: fontSize, fill: fill});
+	    var x = tspan.getAttribute('x') || node.getAttribute('x') || 0;
+	    var y = tspan.getAttribute('y') || node.getAttribute('y') || 0;
+	    pixi_text.x = parseInt(x);
+	    pixi_text.y = parseInt(y) - pixi_text.height + PIXI.TextMetrics._fonts[pixi_text._font].descent;
 	    this.addChild(pixi_text);
 	}
 
@@ -544,34 +498,34 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	SVGGraphics.prototype.drawPathData = function (data) {
 	    var instructions = data.instructions;
-	    var subpathIndex = 0;
+	    var subPathIndices = []
+
+	    for (var j = 0; j < instructions.length; j++) {
+	        if (instructions[j].command.toLowerCase() === 'm') {
+	            subPathIndices.push(j)
+	        }
+	    }
 
 	    for (var i = 0; i < instructions.length; i++) {
 	        var command = instructions[i].command;
-	        var args = instructions[i].args;
 	        var points = instructions[i].points;
 	        var z = 0;
-	        var fill = true;
+	        if (command.toLowerCase() === 'z' && points.length === 0) {
+	            points.length = 1
+	        }
 	        while (z < points.length) {
 	            switch (command.toLowerCase()) {
 	                // moveto command
 	                case 'm':
-	                    var x = points[z].x + this._trans.x;
-	                    var y = points[z].y + this._trans.y;
+	                    var x = points[z].x;
+	                    var y = points[z].y;
 
-	                    //check if we need to create "holes"
-	                    var lastDirection;
-	                    var direction = lastDirection = data.subpaths[subpathIndex].direction;
-	                    if (subpathIndex > 0) {
-	                        lastDirection = data.subpaths[subpathIndex - 1].direction;
-	                        if (direction != lastDirection) {
-	                            fill = false;
+	                    if (z === 0) {
+	                        if(subPathIndices.indexOf(i) >= 2) {
+	                            this.addHole()
 	                        }
-	                    }
-
-	                    if (z == 0 && fill) {
 	                        this.moveTo(x, y);
-	                        this.graphicsData[this.graphicsData.length - 1].shape.closed = false;
+	                        this.graphicsData[this.graphicsData.length -1].shape.closed = false
 	                    } else {
 	                        this.lineTo2(x, y);
 	                    }
@@ -579,8 +533,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    break;
 	                // lineto command
 	                case 'l':
-	                    var x = points[z].x + this._trans.x;
-	                    var y = points[z].y + this._trans.y;
+	                    var x = points[z].x;
+	                    var y = points[z].y;
 
 	                    this.lineTo2(x, y);
 	                    z += 1;
@@ -588,27 +542,27 @@ return /******/ (function(modules) { // webpackBootstrap
 	                // curveto command
 	                case 'c':
 	                    this.bezierCurveTo2(
-	                        points[z].x + this._trans.x,
-	                        points[z].y + this._trans.y,
-	                        points[z + 1].x + this._trans.x,
-	                        points[z + 1].y + this._trans.y,
-	                        points[z + 2].x + this._trans.x,
-	                        points[z + 2].y + this._trans.y
+	                        points[z].x,
+	                        points[z].y,
+	                        points[z + 1].x,
+	                        points[z + 1].y,
+	                        points[z + 2].x,
+	                        points[z + 2].y
 	                    );
 	                    z += 3;
 	                    break;
 	                // vertial lineto command
 	                case 'v':
-	                    var x = points[z].x + this._trans.x;
-	                    var y = points[z].y + this._trans.y;
+	                    var x = points[z].x
+	                    var y = points[z].y
 
 	                    this.lineTo2(x, y);
 	                    z += 1;
 	                    break;
 	                // horizontal lineto command
 	                case 'h':
-	                    var x = points[z].x + this._trans.x;
-	                    var y = points[z].y + this._trans.y;
+	                    var x = points[z].x
+	                    var y = points[z].y
 
 	                    this.lineTo2(x, y);
 	                    z += 1;
@@ -616,37 +570,35 @@ return /******/ (function(modules) { // webpackBootstrap
 	                // quadratic curve command
 	                case 's':
 	                    this.bezierCurveTo2(
-	                        points[z].x + this._trans.x,
-	                        points[z].y + this._trans.y,
-	                        points[z + 1].x + this._trans.x,
-	                        points[z + 1].y + this._trans.y,
-	                        points[z + 2].x + this._trans.x,
-	                        points[z + 2].y + this._trans.y
+	                        points[z].x,
+	                        points[z].y,
+	                        points[z + 1].x,
+	                        points[z + 1].y,
+	                        points[z + 2].x,
+	                        points[z + 2].y
 	                    );
 	                    z += 3;
 	                    break;
 	                // closepath command
 	                case 'z':
+	                    this.graphicsData[this.graphicsData.length -1].shape.closed = true
 	                    z += 1;
-	                    subpathIndex += 1;
-	                    this.graphicsData[this.graphicsData.length - 1].shape.closed = true;
-	                    // Z command is handled by M
 	                    break;
 	                default:
-	                    throw new Error('Could not handle path command: ' + command + ' ' + args.join(','));
-	            }
-	            if (this.graphicsData[this.graphicsData - 1]) {
-	                this.graphicsData[this.graphicsData - 1]._lineWidth = this._lineWidth;
+	                    throw new Error('Could not handle path command: ' + command);
 	            }
 	        }
+	    }
+	    // add the last subpath as a hole if there were holes added before and there is no z command in the end
+	    if (subPathIndices.length > 1) {
+	        this.addHole()
 	    }
 	}
 
 	SVGGraphics.prototype.tokenizePathData = function (pathData) {
 	    var commands = pathData.match(/[a-df-z][^a-df-z]*/ig);
 	    var data = {
-	        instructions: [],
-	        subpaths: []
+	        instructions: []
 	    };
 
 	    //needed to calculate absolute position of points
@@ -654,15 +606,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        x: 0,
 	        y: 0
 	    };
-	    var lastControl = {
-	        x: 0,
-	        y: 0
-	    }
-	    var subpaths = [];
-	    var subpath = {
-	        points: [],
-	        direction: ''
-	    };
+	    var lastControl = null
+
 	    for (var i = 0; i < commands.length; i++) {
 	        var instruction = {
 	            command: '',
@@ -674,17 +619,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	        //allow any decimal number in normal or scientific form
 	        args = args.concat(commands[i].slice(1).trim().match(/[+|-]?(?:0|[0-9]\d*)?(?:\.\d*)?(?:[eE][+\-]?\d+)?/g));
 
-
 	        for(var j= args.length-1;j>= 0;j--){
 	            var arg = args[j];
-	            if(arg == ""){
+	            if(arg === ""){
 	                args.splice(j, 1)
 	            }
 	        }
-
-	        //args = args.filter(function(n){
-	        //    return n != "";
-	        //});
 
 	        var p = 0;
 	        while (p < args.length) {
@@ -703,7 +643,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    point.x = parseScientific(args[p]) + offset.x;
 	                    point.y = parseScientific(args[p + 1]) + offset.y;
 	                    points.push(point);
-	                    subpath.points.push(point);
 	                    lastPoint = point;
 	                    p += 2;
 	                    break;
@@ -712,7 +651,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    point.x = parseScientific(args[p]) + offset.x;
 	                    point.y = parseScientific(args[p + 1]) + offset.y;
 	                    points.push(point);
-	                    subpath.points.push(point);
 	                    lastPoint = point;
 	                    p += 2;
 	                    break;
@@ -727,9 +665,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    points.push(point1);
 	                    points.push(point2);
 	                    points.push(point3);
-	                    subpath.points.push(point1);
-	                    subpath.points.push(point2);
-	                    subpath.points.push(point3);
 	                    lastPoint = point3;
 	                    lastControl = point2;
 	                    p += 6;
@@ -739,7 +674,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    point.y = parseScientific(args[p]) + offset.y;
 	                    point.x = lastPoint.x;
 	                    points.push(point);
-	                    subpath.points.push(point);
 	                    lastPoint = point;
 	                    p += 1;
 	                    break;
@@ -748,14 +682,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    point.x = parseScientific(args[p]) + offset.x;
 	                    point.y = lastPoint.y;
 	                    points.push(point);
-	                    subpath.points.push(point);
 	                    lastPoint = point;
 	                    p += 1;
 	                    break;
 	                case 's':
 	                    var point1 = {} , point2 = {}, point3 = {};
-	                    point1.x = 2 * lastPoint.x - lastControl.x;
-	                    point1.y = 2 * lastPoint.y - lastControl.y;
+	                    if(lastControl === null) {
+	                        point1.x = lastPoint.x
+	                        point1.y = lastPoint.y
+	                    } else {
+	                        point1.x = lastControl.x;
+	                        point1.y = lastControl.y;
+	                    }
 	                    point2.x = parseScientific(args[p]) + offset.x;
 	                    point2.y = parseScientific(args[p + 1]) + offset.y;
 	                    point3.x = parseScientific(args[p + 2]) + offset.x;
@@ -765,20 +703,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    points.push(point3);
 	                    lastPoint = point3;
 	                    lastControl = point2;
-	                    subpath.points.push(point1);
-	                    subpath.points.push(point2);
-	                    subpath.points.push(point3);
 	                    p += 4;
-	                    break;
-	                case 'z':
-	                    points.push({x: 0, y: 0});
-	                    //subpath is closed so we need to push the subpath
-	                    subpath.direction = this.getPathDirection(subpath);
-	                    subpaths.push(subpath);
-	                    subpath = {
-	                        points: []
-	                    };
-	                    p += 1;
 	                    break;
 	                default:
 	                    p += 1;
@@ -790,31 +715,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        data.instructions.push(instruction);
 	    }
 
-	    //If path data ends with no z command, then we need to push the last subpath
-	    if (subpath.points.length > 0) {
-	        subpath.direction = this.getPathDirection(subpath);
-	        subpaths.push(subpath);
-	    }
-	    data.subpaths = subpaths;
 	    return data;
-	}
-
-	SVGGraphics.prototype.getPathDirection = function (path) {
-	    //based on http://stackoverflow.com/a/1584377
-	    var points = path.points;
-	    var sum = 0;
-	    for (var i = 0; i < points.length - 1; i++) {
-	        var curPoint = points[i];
-	        var nexPoint = points[(i + 1)];
-	        sum += (nexPoint.x - curPoint.x) * (nexPoint.y + curPoint.y);
-	    }
-	    if (sum > 0) {
-	        //clockwise
-	        return 'cw';
-	    } else {
-	        //counter-clockwise
-	        return 'ccw';
-	    }
 	}
 
 	SVGGraphics.prototype.applyTransformation = function (node) {
@@ -834,29 +735,29 @@ return /******/ (function(modules) { // webpackBootstrap
 	            transformMatrix.ty = parseScientific(transformValues[5]);
 	            var point = {x: 0, y: 0};
 	            var trans_point = transformMatrix.apply(point);
-	            this._trans.x += trans_point.x;
-	            this._trans.y += trans_point.y;
+	            this.x += trans_point.x;
+	            this.y += trans_point.y;
 	            this.scale.x = Math.sqrt(transformMatrix.a * transformMatrix.a + transformMatrix.b * transformMatrix.b);
 	            this.scale.y = Math.sqrt(transformMatrix.c * transformMatrix.c + transformMatrix.d * transformMatrix.d);
 
 	            this.rotation = -Math.acos(transformMatrix.a / this.scale.x);
 	        } else if (transformCommand == 'translate') {
-	            this._trans.x += parseScientific(transformValues[0]);
-	            this._trans.y += parseScientific(transformValues[1]);
+	            this.x += parseScientific(transformValues[0]);
+	            this.y += parseScientific(transformValues[1]);
 	        } else if (transformCommand == 'scale') {
 	            this.scale.x = parseScientific(transformValues[0]);
 	            this.scale.y = parseScientific(transformValues[1]);
 	        } else if (transformCommand == 'rotate') {
 	            if (transformValues.length > 1) {
-	                this._trans.x += parseScientific(transformValues[1]);
-	                this._trans.y += parseScientific(transformValues[2]);
+	                this.x += parseScientific(transformValues[1]);
+	                this.y += parseScientific(transformValues[2]);
 	            }
 
 	            this.rotation = parseScientific(transformValues[0]);
 
 	            if (transformValues.length > 1) {
-	                this._trans.x -= parseScientific(transformValues[1]);
-	                this._trans.y -= parseScientific(transformValues[2]);
+	                this.x -= parseScientific(transformValues[1]);
+	                this.y -= parseScientific(transformValues[2]);
 	            }
 	        }
 	    }
