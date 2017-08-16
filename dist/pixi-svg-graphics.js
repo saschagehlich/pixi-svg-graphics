@@ -52,7 +52,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ function(module, exports, __webpack_require__) {
 
 	/* @flow weak */
 
@@ -573,7 +573,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    this.lineTo2(x, y);
 	                    z += 1;
 	                    break;
-	                // quadratic curve command
+	                // bezier curve command
 	                case 's':
 	                    this.bezierCurveTo2(
 	                        points[z].x,
@@ -710,9 +710,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    lastPoint = point3;
 	                    lastControl = point2;
 	                    p += 4;
-	                    break;
-	                default:
-	                    p += 1;
 	                    break;
 	                default:
 	                    p += 1;
@@ -914,16 +911,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = SVGGraphics;
 
 
-/***/ }),
+/***/ },
 /* 1 */
-/***/ (function(module, exports) {
+/***/ function(module, exports) {
 
 	if(typeof __WEBPACK_EXTERNAL_MODULE_1__ === 'undefined') {var e = new Error("Cannot find module \"undefined\""); e.code = 'MODULE_NOT_FOUND'; throw e;}
 	module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
 
-/***/ }),
+/***/ },
 /* 2 */
-/***/ (function(module, exports) {
+/***/ function(module, exports) {
 
 	/*!
 	 color2color v0.2.1 indyarmy.com
@@ -1385,7 +1382,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = color2color;
 
 
-/***/ })
+/***/ }
 /******/ ])
 });
 ;
