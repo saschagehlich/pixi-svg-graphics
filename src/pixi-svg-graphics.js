@@ -355,6 +355,7 @@ SVGGraphics.prototype.drawPolylineNode = function (node) {
 
         if (i === 0) {
             this.moveTo(coords[1], coords[2]);
+            this.currentPath.shape.closed = false;
         } else {
             this.lineTo2(coords[1], coords[2]);
         }
@@ -641,8 +642,8 @@ SVGGraphics.prototype.tokenizePathData = function (pathData) {
                         point1.x = lastPoint.x
                         point1.y = lastPoint.y
                     } else {
-                        point1.x = lastControl.x;
-                        point1.y = lastControl.y;
+                        point1.x = 2*lastPoint.x - lastControl.x;
+                        point1.y = 2*lastPoint.y - lastControl.y;
                     }
                     point2.x = parseScientific(args[p]) + offset.x;
                     point2.y = parseScientific(args[p + 1]) + offset.y;
