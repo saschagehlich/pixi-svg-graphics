@@ -233,6 +233,18 @@ SVGGraphics.prototype.clone = function(){
         return clone
 };
 
+SVGGraphics.prototype.updateTransform = function () {
+    PIXI.DisplayObject.prototype.updateTransform.call(this);
+
+    if (this._nonScaling) {
+        for (var i = 0; i < this.graphicsData.length; i++) {
+            if (this.graphicsData[i].lineWidth > 0) {
+                this.graphicsData[i].lineWidth = this.graphicsData[i].lineWidth / this.scale.x
+            }
+        }
+    }
+}
+
 /**
  * Draws the given node
  * @param  {SVGElement} node
