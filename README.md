@@ -8,15 +8,15 @@ This module can draw SVG documents on PIXI.js's `Graphics` object, making them s
 Usage:
 ------
 
-Using as a module
+Install the module (`yarn install pixi-vector-graphics`)
 
 ```js
 var svg = document.querySelector('svg#MySVGTag')
-var SVGGraphics = require('pixi-svg-graphics')
+var SVGGraphics = require('pixi-vector-graphics')
 var graphics = new SVGGraphics(svg);
 ```
 
-Or just include pixi-svg-graphics.min.js in your HTML:
+Or include pixi-svg-graphics.min.js in your HTML:
 
 ```html
 <script src="pixi-svg-graphics.min.js"></script>
