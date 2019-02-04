@@ -15,7 +15,7 @@
     "gulp-webpack": "^1.5.0",
     "vinyl-source-stream": "^1.1.0"
   },
-  "dependencies": {
+  "peerDependencies": {
     "pixi.js": "^3.0.6"
   }
 }
