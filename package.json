@@ -1,12 +1,16 @@
 {
   "name": "pixi-svg-graphics",
-  "version": "0.0.3",
-  "description": "Draws SVG documents on PIXI.Graphics objects",
-  "main": "src/pixi-svg-graphics.js",
+  "version": "1.0.0",
+  "description": "Converts SVG documents into PIXI.Graphics objects",
+  "main": "dist/pixi-svg-graphics.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Sascha Gehlich <sascha@gehlich.us>",
+  "contributors": [
+    "Mike Barkmin <m.barkmin@greyrook.com>",
+    "Larry Gordon <lgordon@psyrendust.com>"
+  ],
   "license": "MIT",
   "devDependencies": {
     "gulp": "^3.8.11",

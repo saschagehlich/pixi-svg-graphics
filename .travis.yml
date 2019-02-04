@@ -1,0 +1,16 @@
+language: node_s
+
+
+install:
+  - npm install
+
+script:
+  - node_modules/gulp/bin/gulp.js
+
+after_success:
+  coveralls
+
+addons:
+  apt:
+    packages:
+    - nginx

@@ -23,7 +23,7 @@ gulp.task('webpack', function () {
         root: sourceFiles
       },
       externals: {
-        'pixi.js': {
+        'PIXI': {
           root: 'PIXI',
           commonjs: 'pixi.js',
           commonjs2: 'pixi.js',
@@ -42,6 +42,19 @@ gulp.task('uglify', function () {
        extname: '.min.js'
      }))
     .pipe(gulp.dest(path.resolve(__dirname, 'dist')))
+})
+
+gulp.task('creadit', function () {
+  var input = path.resolve(__dirname, 'dist/pixi-svg-graphics.js')
+  var input_min = path.resolve(__dirname, 'dist/pixi-svg-graphics.min.js')
+  gulp.src(input_min)
+    .pipe(gulp.dest(path.resolve(__dirname, '../createjs/creadit/static/creadit/lib/pixi_svg_graphics')))
+  return gulp.src(input)
+    .pipe(gulp.dest(path.resolve(__dirname, '../createjs/creadit/static/creadit/lib/pixi_svg_graphics')))
+})
+
+gulp.task('watch', function() {
+  gulp.watch('src/pixi-svg-graphics.js', ['webpack', 'uglify', 'creadit'])
 })
 
 gulp.task('default', ['webpack', 'uglify'])
