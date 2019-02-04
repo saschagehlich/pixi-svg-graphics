@@ -1,6 +1,5 @@
 language: node_s
 
-
 install:
   - npm install
 
