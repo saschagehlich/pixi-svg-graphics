@@ -52,7 +52,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var PIXI = __webpack_require__(1)
 	var color2color = __webpack_require__(2)
@@ -454,15 +454,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = SVGGraphics;
 
 
-/***/ },
+/***/ }),
 /* 1 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
 
-/***/ },
+/***/ }),
 /* 2 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/*!
 	 color2color v0.2.1 indyarmy.com
@@ -924,7 +924,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = color2color;
 
 
-/***/ }
+/***/ })
 /******/ ])
 });
 ;
