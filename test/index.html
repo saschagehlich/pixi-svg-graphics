@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <title>SVG -> PIXI.Graphics</title>
+  </head>
+  <body>
+    <script src="../lib/pixi.min.js"></script>
+    <script src="../dist/pixi-svg-graphics.js"></script>
+    <script>
+        var renderer = new PIXI.CanvasRenderer(400, 400, {
+            antialias: true,
+            backgroundColor: 0xFFFFFF
+        });
+        var ready = false;
+        var changeTestImage = function (testImage) {
+            ready = false;
+            var request = new XMLHttpRequest();
+            request.open('GET', testImage, true);
+            request.onreadystatechange = function () {
+                if (request.readyState == 4) {
+                    var graphics = new SVGGraphics(request.responseXML);
+                    renderer.render(graphics);
+                    ready = true;
+                }
+            };
+            request.send(null);
+        };
+        var checkReady = function() {
+            return ready;
+        };
+        window.onload = function () {
+            renderer.view.id = 'output';
+            document.body.appendChild(renderer.view);
+        };
+    </script>
+  </body>
+</html>
