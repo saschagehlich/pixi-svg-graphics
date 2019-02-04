@@ -291,15 +291,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 	}
 
-	var id = 1
 	/**
 	 * Draws the given node
 	 * @param  {SVGElement} node
 	 */
 	SVGGraphics.prototype.drawNode = function (parent, node) {
 	  var graphics = new PIXI.Graphics()
-	  graphics.__id = id++
-	  graphics.__node = node
 	  var tagName = node.tagName
 	  var capitalizedTagName = tagName.charAt(0).toUpperCase() + tagName.slice(1)
 	  if (typeof this['draw' + capitalizedTagName + 'Node'] !== 'undefined') {
@@ -308,11 +305,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var height = node.getAttribute('height')
 	      graphics.beginFill(0x000, 0).drawRect(0, 0, parseInt(width), parseInt(height))
 	    }
+	    (parent || this).addChild(graphics)
 	    this['draw' + capitalizedTagName + 'Node'](graphics, node)
+	    this.applyTransformation(graphics, node)
+	    graphics.updateTransform()
 	  }
-	  (parent || this).addChild(graphics)
-	  this.applyTransformation(graphics, node)
-	  graphics.updateTransform()
 	}
 
 	/**
@@ -320,6 +317,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGSVGElement} node
 	 */
 	SVGGraphics.prototype.drawSvgNode = function (graphics, node) {
+	  this.parseSvgAttributes(graphics, node)
+
 	  var children = node.children || node.childNodes
 	  for (var i = 0; i < children.length; i++) {
 	    var child = children[i]
@@ -343,6 +342,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {SVGGroupElement} node
 	 */
 	SVGGraphics.prototype.drawGNode = function (graphics, node) {
+	  this.parseSvgAttributes(graphics, node)
+
 	  var children = node.children || node.childNodes
 	  var child
 	  for (var i = 0, len = children.length; i < len; i++) {
@@ -823,32 +824,55 @@ return /******/ (function(modules) { // webpackBootstrap
 	  this.applySvgAttributes(graphics, attributes)
 	}
 
+	SVGGraphics.prototype.getInheritedStyleAttribute = function (graphics, attributeName) {
+	  if (graphics._styleAttributes && graphics._styleAttributes[attributeName]) {
+	    return graphics._styleAttributes[attributeName]
+	  } else if (graphics.parent) {
+	    const value = this.getInheritedStyleAttribute(graphics.parent, attributeName)
+	    if (value) {
+	      return value
+	    }
+	  }
+	  return null
+	}
+
 	SVGGraphics.prototype.applySvgAttributes = function (graphics, attributes) {
+	  const styleAttributeNames = [
+	    'stroke',
+	    'stroke-width',
+	    'vector-effect',
+	    'stroke-dasharray',
+	    'fill'
+	  ]
+	  const styleAttributes = {}
+	  styleAttributeNames.forEach(attributeName => {
+	    styleAttributes[attributeName] = attributes[attributeName] || this.getInheritedStyleAttribute(graphics, attributeName)
+	  })
 
 	  // Apply stroke style
 	  var strokeColor = 0x000000, strokeWidth = 1, strokeAlpha = 0
-
 	  var color, intColor
-	  if (attributes.stroke) {
-	    color = color2color(attributes.stroke, 'array')
+
+	  if (styleAttributes.stroke) {
+	    color = color2color(styleAttributes.stroke, 'array')
 	    intColor = 256 * 256 * color[0] + 256 * color[1] + color[2]
 	    strokeColor = intColor
 	    strokeAlpha = color[3]
 	  }
 
-	  if (attributes['stroke-width']) {
-	    this._lineWidth = strokeWidth = parseInt(attributes['stroke-width'], 10)
+	  if (styleAttributes['stroke-width']) {
+	    strokeWidth = parseInt(styleAttributes['stroke-width'], 10)
 	  }
 
-	  var vectorEffect = attributes['vector-effect']
+	  var vectorEffect = styleAttributes['vector-effect']
 	  if (vectorEffect === 'non-scaling-stroke') {
 	    this._nonScaling = true
 	  }
 
 	  var strokeSegments = 100, strokeDashLength = 100, strokeSpaceLength = 0, strokeDashed = false
-	  if (attributes['stroke-dasharray'] && attributes['stroke-dasharray'] !== 'none') {
-	    //ignore unregular dasharray
-	    var params = splitAttributeParams(attributes['stroke-dasharray'])
+	  if (styleAttributes['stroke-dasharray'] && styleAttributes['stroke-dasharray'] !== 'none') {
+	    // Ignore unregular dasharray
+	    var params = splitAttributeParams(styleAttributes['stroke-dasharray'])
 	    strokeDashLength = parseInt(params[0])
 	    strokeSpaceLength = parseInt(params[1])
 	    strokeDashed = true
@@ -862,13 +886,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  // Apply fill style
 	  var fillColor = 0x000000, fillAlpha = 1
-	  if (attributes.fill) {
-	    color = color2color(attributes.fill, 'array')
+	  if (styleAttributes.fill) {
+	    color = color2color(styleAttributes.fill, 'array')
 	    intColor = 256 * 256 * color[0] + 256 * color[1] + color[2]
 	    fillColor = intColor
 	    fillAlpha = color[3]
 	  }
 	  graphics.beginFill(fillColor, fillAlpha)
+	  graphics._styleAttributes = styleAttributes
 	}
 
 	/**
