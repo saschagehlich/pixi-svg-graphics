@@ -25,5 +25,8 @@
   },
   "peerDependencies": {
     "pixi.js": ">= 3.0.0"
+  },
+  "dependencies": {
+    "pixi.js": "^4.8.5"
   }
 }

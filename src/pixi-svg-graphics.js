@@ -1,13 +1,6 @@
 var PIXI = require('pixi.js')
 var color2color = require('./vendor/color2color')
 
-function printRecursively (node) {
-  node.children.forEach(c => {
-    console.log(c.__id, c.transform.worldTransform)
-    printRecursively(c)
-  })
-}
-
 function SVGGraphics(svg) {
   PIXI.Graphics.call(this);
   this._scale = 1;
@@ -19,8 +12,6 @@ function SVGGraphics(svg) {
   if (svg) {
     this.drawSVG(svg);
   }
-
-  printRecursively(this)
 }
 
 PIXI.Graphics.prototype.lineTo2 = function (x, y) {
@@ -259,7 +250,7 @@ SVGGraphics.prototype.drawNode = function (parent, node) {
     if (capitalizedTagName === 'Svg') {
       var width = node.getAttribute('width');
       var height = node.getAttribute('height');
-      this.beginFill(0x000, 0).drawRect(0, 0, parseInt(width), parseInt(height));
+      graphics.beginFill(0x000, 0).drawRect(0, 0, parseInt(width), parseInt(height));
     }
     this['draw' + capitalizedTagName + 'Node'](graphics, node);
   }
@@ -370,7 +361,7 @@ SVGGraphics.prototype.drawPolylineNode = function (graphics, node) {
 
     if (i === 0) {
       graphics.moveTo(coords[1], coords[2])
-      this.currentPath.shape.closed = false;
+      graphics.currentPath.shape.closed = false;
     } else {
       graphics.lineTo(coords[1], coords[2])
     }
@@ -494,7 +485,7 @@ SVGGraphics.prototype.drawPathData = function (graphics, data) {
               graphics.addHole()
             }
             graphics.moveTo(x, y);
-            this.graphicsData[this.graphicsData.length -1].shape.closed = false
+            graphics.graphicsData[graphics.graphicsData.length -1].shape.closed = false
           } else {
             graphics.lineTo2(x, y);
           }
@@ -550,7 +541,7 @@ SVGGraphics.prototype.drawPathData = function (graphics, data) {
           break;
         // closepath command
         case 'z':
-          this.graphicsData[this.graphicsData.length -1].shape.closed = true
+          graphics.graphicsData[graphics.graphicsData.length -1].shape.closed = true
           z += 1;
           break;
         default:

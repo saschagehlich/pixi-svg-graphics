@@ -57,13 +57,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	var PIXI = __webpack_require__(1)
 	var color2color = __webpack_require__(2)
 
-	function printRecursively (node) {
-	  node.children.forEach(c => {
-	    console.log(c.__id, c.transform.worldTransform)
-	    printRecursively(c)
-	  })
-	}
-
 	function SVGGraphics(svg) {
 	  PIXI.Graphics.call(this);
 	  this._scale = 1;
@@ -75,8 +68,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	  if (svg) {
 	    this.drawSVG(svg);
 	  }
-
-	  printRecursively(this)
 	}
 
 	PIXI.Graphics.prototype.lineTo2 = function (x, y) {
@@ -315,7 +306,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (capitalizedTagName === 'Svg') {
 	      var width = node.getAttribute('width');
 	      var height = node.getAttribute('height');
-	      this.beginFill(0x000, 0).drawRect(0, 0, parseInt(width), parseInt(height));
+	      graphics.beginFill(0x000, 0).drawRect(0, 0, parseInt(width), parseInt(height));
 	    }
 	    this['draw' + capitalizedTagName + 'Node'](graphics, node);
 	  }
@@ -426,7 +417,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    if (i === 0) {
 	      graphics.moveTo(coords[1], coords[2])
-	      this.currentPath.shape.closed = false;
+	      graphics.currentPath.shape.closed = false;
 	    } else {
 	      graphics.lineTo(coords[1], coords[2])
 	    }
@@ -550,7 +541,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	              graphics.addHole()
 	            }
 	            graphics.moveTo(x, y);
-	            this.graphicsData[this.graphicsData.length -1].shape.closed = false
+	            graphics.graphicsData[graphics.graphicsData.length -1].shape.closed = false
 	          } else {
 	            graphics.lineTo2(x, y);
 	          }
@@ -606,7 +597,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          break;
 	        // closepath command
 	        case 'z':
-	          this.graphicsData[this.graphicsData.length -1].shape.closed = true
+	          graphics.graphicsData[graphics.graphicsData.length -1].shape.closed = true
 	          z += 1;
 	          break;
 	        default:

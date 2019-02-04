@@ -33,7 +33,7 @@ gulp.task('webpack', function () {
 })
 
 gulp.task('watch', function() {
-  gulp.watch('src/pixi-svg-graphics.js', ['webpack'])
+  gulp.watch('src/pixi-svg-graphics.js', gulp.series(['webpack']))
 })
 
 gulp.task('default', gulp.series(['webpack']))
