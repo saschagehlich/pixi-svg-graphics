@@ -1,6 +1,6 @@
 {
   "name": "pixi-svg-graphics",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Converts SVG documents into PIXI.Graphics objects",
   "main": "dist/pixi-svg-graphics.js",
   "repository": {
