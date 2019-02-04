@@ -1,9 +1,9 @@
-<a href="https://travis-ci.org/GreyRook/pixi-svg-graphics"><img src="https://travis-ci.org/GreyRook/pixi-svg-graphics.svg?branch=master" align=right></a>
+<a href="https://travis-ci.org/saschagehlich/pixi-svg-graphics"><img src="https://travis-ci.org/saschagehlich/pixi-svg-graphics.svg?branch=master" align=right></a>
 
 PIXI-SVG-Graphics
 ====================
 
-This module can draw SVG documents on PIXI.js's `Graphics` object, making them scaleable and crisp.  The code originates from [saschagehlich/pixi-svg-graphics](https://github.com/saschagehlich/pixi-svg-graphics) but is API wise incompatible and refactored quite a bit.
+This module can draw SVG documents on PIXI.js's `Graphics` object, making them scaleable and crisp.
 
 Usage:
 ------
