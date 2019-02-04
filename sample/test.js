@@ -1,7 +1,7 @@
 function pad(num, size) {
-  var s = num+"";
-  while (s.length < size) s = "0" + s;
-  return s;
+  var s = num+""
+  while (s.length < size) s = "0" + s
+  return s
 }
 
 function appendExample (index) {
@@ -13,7 +13,7 @@ function appendExample (index) {
   container.appendChild(image)
   image.src = filePath
 
-  var renderer = new PIXI.CanvasRenderer(400, 400, {
+  var renderer = new PIXI.WebGLRenderer(400, 400, {
     antialias: true,
     backgroundColor: 0xFFFFFF
   });
@@ -22,12 +22,12 @@ function appendExample (index) {
   request.open('GET', filePath, true);
   request.onreadystatechange = function () {
     if (request.readyState === 4) {
-      var graphics = new SVGGraphics(request.responseXML);
+      var graphics = new SVGGraphics(request.responseXML)
       container.appendChild(renderer.view)
-      renderer.render(graphics);
+      renderer.render(graphics)
     }
   };
-  request.send(null);
+  request.send(null)
 }
 
 window.onload = () => {
